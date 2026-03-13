@@ -1,0 +1,116 @@
+{
+  "projectType": "cli-tool",
+  "projectName": "Neru",
+  "projectDescription": "Keyboard-driven navigation for macOS - Navigate and click without touching your mouse",
+  "theme": "palm",
+  "primaryColor": "#94cb04",
+  "lightColor": "#545454",
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/navigation-modes",
+              "concepts/configuration-overview"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/hints-mode",
+              "guides/grid-mode",
+              "guides/recursive-grid",
+              "guides/scroll-mode",
+              "guides/mouse-actions",
+              "guides/cli-usage",
+              "guides/shell-integration",
+              "guides/troubleshooting"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "pages": [
+              "advanced/architecture",
+              "advanced/cross-platform",
+              "advanced/development",
+              "advanced/contributing"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Commands",
+            "pages": [
+              "api/commands/daemon",
+              "api/commands/navigation",
+              "api/commands/actions",
+              "api/commands/services",
+              "api/commands/config",
+              "api/commands/status"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "api/config/hotkeys",
+              "api/config/general",
+              "api/config/hints",
+              "api/config/grid",
+              "api/config/recursive-grid",
+              "api/config/scroll",
+              "api/config/appearance",
+              "api/config/logging"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Recursive Grid Mode - drill into any region with coordinate-based navigation",
+    "Grid Mode - coordinate-based navigation for quick screen access",
+    "Hints Mode - accessibility-driven labels on clickable elements",
+    "Vim-Style Scrolling - j/k/gg/G navigation with full remapping",
+    "Direct Mouse Actions - left/right/middle click, drag & drop via keybindings",
+    "Per-App Exclusions - disable Neru in specific applications",
+    "IPC-Based CLI - control daemon programmatically via Unix sockets",
+    "TOML Configuration - version-controlled, shareable configuration files"
+  ],
+  "publicApiSurface": [
+    "neru launch - start the daemon",
+    "neru hints - activate hints mode",
+    "neru grid - activate grid mode",
+    "neru recursive_grid - activate recursive grid mode",
+    "neru scroll - activate scroll mode",
+    "neru action left_click - perform left click",
+    "neru action right_click - perform right click",
+    "neru action middle_click - perform middle click",
+    "neru action move_mouse - move mouse to coordinates",
+    "neru services install - install launchd service",
+    "neru services status - check service status",
+    "neru config reload - reload configuration",
+    "neru config dump - show loaded configuration",
+    "neru status - check daemon status",
+    "neru start - resume paused daemon",
+    "neru stop - pause daemon",
+    "neru idle - cancel active mode",
+    "neru toggle-screen-share - toggle overlay visibility in screen sharing",
+    "neru doctor - check component health",
+    "neru completion - generate shell completions"
+  ]
+}
