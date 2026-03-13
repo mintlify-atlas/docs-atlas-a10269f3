@@ -1,0 +1,785 @@
+---
+title: Configuration Overview
+description: Understanding Neru's TOML-based configuration system, file locations, and best practices
+icon: 'gear'
+---
+
+Neru uses a single **TOML file** for all configuration. This guide covers where configs live, how to edit them, and why TOML beats GUI settings.
+
+---
+
+## Configuration File Locations
+
+<Note>
+Neru searches for configuration files in priority order. The **first file found** is used.
+</Note>
+
+Configuration is loaded from (highest to lowest priority):
+
+1. **`$XDG_CONFIG_HOME/neru/config.toml`** (if `XDG_CONFIG_HOME` is set)
+2. **`~/.config/neru/config.toml`** (recommended)
+3. **`~/.neru.toml`** (legacy)
+4. **`neru.toml`** (current directory)
+5. **`config.toml`** (current directory)
+
+<Tabs>
+  <Tab title="Recommended">
+    ```bash
+    # Standard XDG location (best practice)
+    ~/.config/neru/config.toml
+    ```
+    
+    This location:
+    - Follows XDG Base Directory spec
+    - Works on macOS, Linux, and Windows
+    - Keeps home directory clean
+    - Easy to version control with dotfiles
+  </Tab>
+  
+  <Tab title="Legacy">
+    ```bash
+    # Legacy location (still supported)
+    ~/.neru.toml
+    ```
+    
+    Kept for backward compatibility but not recommended for new installations.
+  </Tab>
+  
+  <Tab title="Custom">
+    ```bash
+    # Custom path via flag
+    neru launch --config /path/to/custom-config.toml
+    ```
+    
+    Use the `--config` or `-c` flag to specify any config file path.
+  </Tab>
+</Tabs>
+
+### Global Flag
+
+Override config file location with the `--config` flag:
+
+```bash
+# Launch with custom config
+neru launch --config ~/dotfiles/neru/work-config.toml
+
+# Activate hints mode with custom config
+neru hints --config ~/dotfiles/neru/minimal.toml
+```
+
+---
+
+## Why TOML Over GUI Settings?
+
+<CardGroup cols={2}>
+  <Card title="Version Control" icon="code-branch">
+    Track changes with Git, sync across machines, rollback if needed
+  </Card>
+  <Card title="Edit Speed" icon="bolt">
+    Faster than clicking through preference panels - just search and edit
+  </Card>
+  <Card title="Stability" icon="shield">
+    No GUI = less code to maintain = fewer bugs and faster development
+  </Card>
+  <Card title="Shareable" icon="share-nodes">
+    Copy/paste configs between users, share custom setups in discussions
+  </Card>
+  <Card title="Scriptable" icon="terminal">
+    Generate configs programmatically, template for different contexts
+  </Card>
+  <Card title="Readable" icon="book">
+    Self-documenting format with inline comments explaining each option
+  </Card>
+</CardGroup>
+
+---
+
+## TOML Format Basics
+
+<Note>
+TOML (Tom's Obvious, Minimal Language) is a config format designed to be easy to read and write.
+</Note>
+
+### Sections
+
+Sections define configuration groups:
+
+```toml
+[general]           # General settings section
+key = "value"
+
+[hints]             # Hints mode section
+enabled = true
+
+[hints.ui]          # Nested section for hints UI settings
+font_size = 10
+```
+
+### Data Types
+
+```toml
+# String
+font_family = "SF Mono"
+
+# Integer
+font_size = 12
+
+# Boolean
+enabled = true
+
+# Array
+mode_exit_keys = ["Escape", "Ctrl+C"]
+
+# Inline table (rare in Neru configs)
+grid_size = { rows = 2, cols = 2 }
+```
+
+### Comments
+
+```toml
+# Full line comment
+enabled = true  # Inline comment
+```
+
+### Array of Tables
+
+Used for per-app configurations:
+
+```toml
+# First app config
+[[hints.app_configs]]
+bundle_id = "com.google.Chrome"
+additional_clickable_roles = ["AXTabGroup"]
+
+# Second app config
+[[hints.app_configs]]
+bundle_id = "com.apple.Safari"
+mouse_action_refresh_delay = 1000
+```
+
+---
+
+## Configuration Sections
+
+Neru's config is organized into these main sections:
+
+<AccordionGroup>
+  <Accordion title="[general] - Core Behavior">
+    Settings that affect all Neru functionality:
+    
+    ```toml
+    [general]
+    excluded_apps = []                  # Bundle IDs to ignore
+    accessibility_check_on_start = true # Verify permissions on launch
+    restore_cursor_position = false     # Return cursor after mode exit
+    center_cursor_position = false      # Center cursor on exit
+    mode_exit_keys = ["Escape"]         # Keys that exit any mode
+    passthrough_unbounded_keys = false  # Let unbound shortcuts through
+    hide_overlay_in_screen_share = false # Hide from screen sharing
+    ```
+    
+    **Key options:**
+    - `excluded_apps` - Prevent Neru from activating in terminal, RDP, etc.
+    - `mode_exit_keys` - Universal exit key (Escape by default)
+    - `passthrough_unbounded_keys` - Allow Cmd+Tab while in modes
+  </Accordion>
+  
+  <Accordion title="[hotkeys] - Global Shortcuts">
+    Define keyboard shortcuts to activate modes:
+    
+    ```toml
+    [hotkeys]
+    "Cmd+Shift+Space" = "hints"
+    "Cmd+Shift+G" = "grid --action left_click"
+    "Cmd+Shift+C" = "recursive_grid"
+    "Cmd+Shift+S" = "scroll"
+    ```
+    
+    **Important:** Defining **any** custom hotkey replaces ALL defaults. You must explicitly define every hotkey you want.
+    
+    Can also execute shell commands:
+    ```toml
+    "Cmd+Alt+T" = "exec open -a Terminal"
+    ```
+  </Accordion>
+  
+  <Accordion title="[hints] - Hints Mode">
+    Accessibility-driven element labeling:
+    
+    ```toml
+    [hints]
+    enabled = true
+    hint_characters = "asdfghjkl"        # Label characters
+    backspace_key = "Backspace"         # Input correction
+    auto_exit_actions = []              # Actions that auto-exit
+    mode_exit_keys = []                 # Additional exit keys
+    max_depth = 50                      # Tree traversal depth
+    
+    [hints.ui]
+    font_size = 10
+    background_color_light = "#F200CFCF"
+    background_color_dark = "#F2007A9E"
+    ```
+    
+    Configure per-app overrides:
+    ```toml
+    [[hints.app_configs]]
+    bundle_id = "com.google.Chrome"
+    additional_clickable_roles = ["AXTabGroup"]
+    ```
+  </Accordion>
+  
+  <Accordion title="[grid] - Grid Mode">
+    Coordinate-based static grid:
+    
+    ```toml
+    [grid]
+    enabled = true
+    characters = "abcdefghijklmnpqrstuvwxyz"
+    sublayer_keys = "abcdefghijklmnpqrstuvwxyz"
+    reset_key = " "                     # Space to clear input
+    backspace_key = "Backspace"
+    live_match_update = true            # Highlight as you type
+    hide_unmatched = true               # Dim non-matching cells
+    
+    [grid.ui]
+    font_size = 10
+    background_color_light = "#9900B4D8"
+    ```
+    
+    Custom row/column labels:
+    ```toml
+    row_labels = "123456789"
+    col_labels = "abcdefghij"
+    ```
+  </Accordion>
+  
+  <Accordion title="[recursive_grid] - Recursive Grid">
+    Coordinate-based recursive subdivision:
+    
+    ```toml
+    [recursive_grid]
+    enabled = true
+    grid_cols = 2
+    grid_rows = 2
+    keys = "uijk"
+    backspace_key = "Backspace"
+    min_size_width = 25
+    min_size_height = 25
+    max_depth = 10
+    reset_key = " "
+    
+    [recursive_grid.ui]
+    line_color_light = "#FF007A9E"
+    line_width = 1
+    font_size = 10
+    label_background = false
+    sub_key_preview = false
+    ```
+    
+    Per-depth layer overrides:
+    ```toml
+    [[recursive_grid.layers]]
+    depth = 0
+    grid_cols = 4
+    grid_rows = 2
+    keys = "qwerasdf"
+    ```
+  </Accordion>
+  
+  <Accordion title="[scroll] - Scroll Mode">
+    Vim-style scrolling:
+    
+    ```toml
+    [scroll]
+    scroll_step = 50                    # j/k pixels per press
+    scroll_step_half = 500              # Ctrl+D/U half page
+    scroll_step_full = 1000000          # gg/G top/bottom
+    
+    [scroll.key_bindings]
+    scroll_up = ["k", "Up"]
+    scroll_down = ["j", "Down"]
+    go_top = ["gg", "Cmd+Up"]
+    go_bottom = ["Shift+G", "Cmd+Down"]
+    page_up = ["Ctrl+U", "PageUp"]
+    page_down = ["Ctrl+D", "PageDown"]
+    ```
+  </Accordion>
+  
+  <Accordion title="[action] - Mouse Actions">
+    Direct action keybindings in navigation modes:
+    
+    ```toml
+    [action]
+    move_mouse_step = 10                # Arrow key pixels
+    
+    [action.key_bindings]
+    left_click = "Shift+L"
+    right_click = "Shift+R"
+    middle_click = "Shift+M"
+    mouse_down = "Shift+I"
+    mouse_up = "Shift+U"
+    move_mouse_up = "Up"
+    move_mouse_down = "Down"
+    move_mouse_left = "Left"
+    move_mouse_right = "Right"
+    ```
+  </Accordion>
+  
+  <Accordion title="[mode_indicator] - Visual Feedback">
+    Cursor-following mode label:
+    
+    ```toml
+    [mode_indicator.scroll]
+    enabled = true
+    text = "Scroll"
+    
+    [mode_indicator.hints]
+    enabled = false
+    text = "Hints"
+    
+    [mode_indicator.ui]
+    font_size = 10
+    background_color_light = "#F200CFCF"
+    indicator_x_offset = 20
+    indicator_y_offset = 20
+    ```
+  </Accordion>
+  
+  <Accordion title="[smooth_cursor] - Animation">
+    Cursor movement animation:
+    
+    ```toml
+    [smooth_cursor]
+    move_mouse_enabled = false          # Enable smooth movement
+    steps = 10                          # Interpolation steps
+    delay = 1                           # Milliseconds between steps
+    ```
+  </Accordion>
+  
+  <Accordion title="[systray] - Menu Bar Icon">
+    System tray configuration:
+    
+    ```toml
+    [systray]
+    enabled = true                      # Show menu bar icon
+    ```
+    
+    Set to `false` for headless mode (CLI/hotkeys only).
+  </Accordion>
+  
+  <Accordion title="[logging] - Debug Output">
+    Logging configuration:
+    
+    ```toml
+    [logging]
+    log_level = "info"                  # debug, info, warn, error
+    log_file = ""                       # Custom path (empty = default)
+    structured_logging = true           # JSON format
+    disable_file_logging = true         # Console only
+    max_file_size = 10                  # MB before rotation
+    max_backups = 5                     # Old logs to keep
+    max_age = 30                        # Days to retain
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Example Configurations
+
+<Tabs>
+  <Tab title="Minimal Config">
+    Start with the essentials:
+    
+    ```toml
+    # ~/.config/neru/config.toml
+    
+    [hotkeys]
+    "Cmd+Shift+Space" = "hints"
+    "Cmd+Shift+C" = "recursive_grid"
+    
+    [general]
+    excluded_apps = ["com.apple.Terminal"]
+    
+    [hints]
+    hint_characters = "asdfghjkl"
+    
+    [recursive_grid]
+    keys = "uijk"
+    ```
+    
+    This gives you:
+    - Hints and Recursive Grid modes
+    - Disabled in Terminal
+    - Default settings for everything else
+  </Tab>
+  
+  <Tab title="Full-Featured Config">
+    Comprehensive setup with all modes:
+    
+    ```toml
+    # ~/.config/neru/config.toml
+    
+    [general]
+    excluded_apps = [
+        "com.apple.Terminal",
+        "com.googlecode.iterm2",
+        "com.microsoft.rdc.macos",
+    ]
+    mode_exit_keys = ["Escape", "Ctrl+C"]
+    passthrough_unbounded_keys = true
+    
+    [hotkeys]
+    "Cmd+Shift+Space" = "hints --action left_click"
+    "Cmd+Shift+G" = "grid --action left_click"
+    "Cmd+Shift+C" = "recursive_grid"
+    "Cmd+Shift+S" = "scroll"
+    
+    [hints]
+    hint_characters = "asdfghjkl"
+    auto_exit_actions = ["left_click", "middle_click"]
+    include_menubar_hints = true
+    
+    [hints.ui]
+    font_size = 12
+    font_family = "SF Mono"
+    
+    [[hints.app_configs]]
+    bundle_id = "com.google.Chrome"
+    additional_clickable_roles = ["AXTabGroup"]
+    
+    [grid]
+    auto_exit_actions = ["left_click"]
+    row_labels = "123456789"
+    col_labels = "abcdefghij"
+    
+    [recursive_grid]
+    grid_cols = 2
+    grid_rows = 2
+    keys = "uijk"
+    auto_exit_actions = ["left_click", "right_click"]
+    
+    [[recursive_grid.layers]]
+    depth = 0
+    grid_cols = 4
+    grid_rows = 2
+    keys = "qwerasdf"
+    
+    [scroll]
+    scroll_step = 100
+    
+    [mode_indicator.scroll]
+    enabled = true
+    text = "📜 Scroll"
+    
+    [action]
+    move_mouse_step = 15
+    ```
+  </Tab>
+  
+  <Tab title="Dvorak Layout">
+    Optimized for Dvorak keyboard:
+    
+    ```toml
+    # ~/.config/neru/config.toml
+    
+    [hints]
+    hint_characters = "aoeuidhtn"  # Dvorak home row
+    
+    [grid]
+    row_labels = "',.pyfgcrl/"
+    col_labels = "aoeuidhtns"
+    
+    [recursive_grid]
+    keys = "aoeu"  # Left home row
+    
+    [[recursive_grid.layers]]
+    depth = 0
+    grid_cols = 3
+    grid_rows = 3
+    keys = "aoeuidhtn"
+    
+    [scroll.key_bindings]
+    scroll_up = ["t", "Up"]       # t = Dvorak k
+    scroll_down = ["h", "Down"]   # h = Dvorak j
+    scroll_left = ["d", "Left"]   # d = Dvorak h
+    scroll_right = ["n", "Right"]  # n = Dvorak l
+    ```
+  </Tab>
+  
+  <Tab title="Work vs Personal">
+    Different configs for different contexts:
+    
+    ```bash
+    # Work config - exclude Slack, enable menubar hints
+    ~/dotfiles/neru/work.toml
+    
+    # Personal config - minimal, recursive grid only
+    ~/dotfiles/neru/personal.toml
+    ```
+    
+    Launch with specific config:
+    ```bash
+    # Work
+    neru launch --config ~/dotfiles/neru/work.toml
+    
+    # Personal
+    neru launch --config ~/dotfiles/neru/personal.toml
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Reloading Configuration
+
+<Note>
+Most config changes take effect immediately after reload. Some options (like `systray.enabled`) require a full restart.
+</Note>
+
+### CLI Reload
+
+```bash
+# Reload config without restarting daemon
+neru config reload
+```
+
+This reloads:
+- Hotkeys
+- Mode settings
+- Visual appearance
+- Keybindings
+- Per-app configs
+
+### Full Restart
+
+For changes that require restart:
+
+```bash
+# Stop daemon
+pkill neru
+
+# Start again
+neru launch
+```
+
+Requires restart:
+- `systray.enabled`
+- `logging.*` options
+- `general.kb_layout_to_use`
+
+---
+
+## Version Control
+
+<CardGroup cols={2}>
+  <Card title="Track Changes" icon="clock-rotate-left">
+    Use Git to track config evolution:
+    
+    ```bash
+    cd ~/dotfiles/neru
+    git add config.toml
+    git commit -m "Enable menubar hints for work"
+    ```
+  </Card>
+  
+  <Card title="Sync Across Machines" icon="cloud">
+    Symlink to dotfiles repo:
+    
+    ```bash
+    ln -s ~/dotfiles/neru/config.toml ~/.config/neru/config.toml
+    ```
+  </Card>
+  
+  <Card title="Share Configurations" icon="share">
+    Post configs in GitHub discussions:
+    
+    https://github.com/y3owk1n/neru/discussions/542
+  </Card>
+  
+  <Card title="Backup Before Changes" icon="floppy-disk">
+    Keep a working copy:
+    
+    ```bash
+    cp ~/.config/neru/config.toml ~/.config/neru/config.toml.bak
+    ```
+  </Card>
+</CardGroup>
+
+---
+
+## Configuration Best Practices
+
+<AccordionGroup>
+  <Accordion title="Start with Defaults">
+    Copy the default config as a starting point:
+    
+    ```bash
+    # Download default config
+    curl -o ~/.config/neru/config.toml \
+      https://raw.githubusercontent.com/y3owk1n/neru/main/configs/default-config.toml
+    ```
+    
+    Then customize only what you need. This ensures you have sensible defaults for all options.
+  </Accordion>
+  
+  <Accordion title="Comment Your Changes">
+    Add comments explaining why you changed defaults:
+    
+    ```toml
+    [hints]
+    # Chrome tabs are hard to click without this
+    [[hints.app_configs]]
+    bundle_id = "com.google.Chrome"
+    additional_clickable_roles = ["AXTabGroup"]
+    
+    [grid]
+    # Faster grid selection on ultrawide monitor
+    row_labels = "12345678"
+    col_labels = "asdfghjk"
+    ```
+  </Accordion>
+  
+  <Accordion title="Test Changes Incrementally">
+    Make one change at a time:
+    
+    1. Edit config
+    2. Reload: `neru config reload`
+    3. Test the change
+    4. Commit if it works
+    5. Rollback if it doesn't
+    
+    Don't change 10 settings at once - you won't know which broke things.
+  </Accordion>
+  
+  <Accordion title="Use Separate Configs for Experimentation">
+    Keep a stable config and experiment with copies:
+    
+    ```bash
+    # Stable
+    ~/.config/neru/config.toml
+    
+    # Experiment
+    ~/.config/neru/experimental.toml
+    
+    # Test experimental
+    neru launch --config ~/.config/neru/experimental.toml
+    ```
+  </Accordion>
+  
+  <Accordion title="Document Per-App Configs">
+    Track which apps need special configuration:
+    
+    ```toml
+    # Chrome: Tab groups not clickable by default
+    [[hints.app_configs]]
+    bundle_id = "com.google.Chrome"
+    additional_clickable_roles = ["AXTabGroup"]
+    
+    # Adobe Illustrator: Non-standard clickable roles
+    [[hints.app_configs]]
+    bundle_id = "com.adobe.illustrator"
+    additional_clickable_roles = ["AXStaticText", "AXImage"]
+    ignore_clickable_check = true
+    
+    # Safari: Dynamic content needs delay
+    [[hints.app_configs]]
+    bundle_id = "com.apple.Safari"
+    mouse_action_refresh_delay = 1000
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Troubleshooting
+
+<Accordion title="Config not loading">
+  Check which config file is being used:
+  
+  ```bash
+  # Check logs for loaded config path
+  neru launch
+  # Look for: "Loaded config from: /path/to/config.toml"
+  ```
+  
+  Verify search path:
+  ```bash
+  # These are checked in order
+  ls -l $XDG_CONFIG_HOME/neru/config.toml
+  ls -l ~/.config/neru/config.toml
+  ls -l ~/.neru.toml
+  ls -l neru.toml
+  ls -l config.toml
+  ```
+</Accordion>
+
+<Accordion title="Reload not working">
+  Some settings require full restart:
+  
+  ```bash
+  pkill neru && neru launch
+  ```
+  
+  Options that need restart:
+  - `systray.enabled`
+  - `logging.*`
+  - `general.kb_layout_to_use`
+</Accordion>
+
+<Accordion title="TOML syntax errors">
+  Validate your TOML:
+  
+  ```bash
+  # Install tomljson
+  brew install tomljson
+  
+  # Validate syntax
+  tomljson ~/.config/neru/config.toml > /dev/null
+  ```
+  
+  Common errors:
+  - Missing quotes around strings
+  - Wrong section names
+  - Duplicate keys
+  - Mismatched brackets
+</Accordion>
+
+<Accordion title="Hotkeys not firing">
+  Check for conflicts:
+  
+  1. System Settings → Keyboard → Keyboard Shortcuts
+  2. Other apps (BetterTouchTool, Karabiner, Hammerspoon)
+  3. Neru logs: `neru launch` and watch for hotkey registration
+  
+  Try alternative hotkeys:
+  ```toml
+  [hotkeys]
+  "Cmd+Alt+Space" = "hints"
+  "Cmd+Alt+C" = "recursive_grid"
+  ```
+</Accordion>
+
+---
+
+## Further Reading
+
+<CardGroup cols={2}>
+  <Card title="Navigation Modes" icon="compass" href="/concepts/navigation-modes">
+    Learn when to use each mode and how they work
+  </Card>
+  <Card title="Full Configuration Reference" icon="book">
+    Complete reference of all config options
+    
+    [View on GitHub →](https://github.com/y3owk1n/neru/blob/main/docs/CONFIGURATION.md)
+  </Card>
+  <Card title="Keyboard Shortcuts" icon="keyboard" href="/api/config/hotkeys">
+    Master all hotkeys and mode keybindings
+  </Card>
+  <Card title="Example Configs" icon="users">
+    See how other users configure Neru
+    
+    [View Discussions →](https://github.com/y3owk1n/neru/discussions/542)
+  </Card>
+</CardGroup>

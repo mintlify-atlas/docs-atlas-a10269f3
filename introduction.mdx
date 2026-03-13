@@ -1,0 +1,177 @@
+---
+title: Introduction
+description: Mouse-free OS navigation for macOS - free, open-source, endlessly customizable
+---
+
+## What is Neru?
+
+**Neru (練る)** — Japanese for _"to refine and master through practice"_ — lets you navigate, click, and scroll anywhere on your screen using only your keyboard. No mouse. No trackpad. No limits.
+
+It's the free, open-source alternative to [Homerow](https://www.homerow.app/), [Mouseless](https://mouseless.click/), and [Wooshy](https://wooshy.app) — with zero paywalls, zero subscriptions, and everything configurable down to the last pixel.
+
+<Info>
+**Why "Neru"?** The name reflects the philosophy: keyboard navigation is a skill you refine and master through practice, not something you buy and forget.
+</Info>
+
+## Key Features
+
+### Three Navigation Modes
+
+Neru provides three distinct navigation modes, each optimized for different use cases:
+
+<CardGroup cols={3}>
+  <Card title="Recursive Grid" icon="grid-2">
+    **Recommended for daily use**
+    
+    Divide your screen into a coordinate grid and drill into any region with `u`/`i`/`j`/`k` until you land exactly where you want.
+    
+    Works everywhere, no exceptions, no app-specific setup.
+  </Card>
+  
+  <Card title="Grid" icon="table-cells">
+    **Quick coarse navigation**
+    
+    Same coordinate-based approach without recursive subdivision. Great for fast, broad movements across the screen.
+  </Card>
+  
+  <Card title="Hints" icon="tags">
+    **Accessibility-driven**
+    
+    Labels appear on every clickable element for instant navigation. Requires accessibility tree support.
+  </Card>
+</CardGroup>
+
+<Tip>
+Recursive Grid is recommended as your daily driver: it's precise, predictable, works everywhere out-of-the-box, and never needs app-specific tweaks.
+</Tip>
+
+### Direct Mouse Actions
+
+In any navigation mode, trigger mouse actions without switching modes:
+
+- **Left click** — `Shift+L` (default)
+- **Right click** — `Shift+R` (default)
+- **Middle click** — `Shift+M` (default)
+- **Double click** — configurable
+- **Drag & drop** — via direct action keybindings
+
+All keybindings are fully remappable.
+
+### Vim-Style Scrolling
+
+Scroll anywhere with familiar Vim motions:
+
+- `j`/`k` — scroll down/up
+- `gg`/`G` — jump to top/bottom
+- `Ctrl+D`/`Ctrl+U` — half-page down/up
+- Arrow keys supported
+
+All bindings are configurable in your `config.toml`.
+
+### Per-App Exclusions
+
+Disable Neru in specific apps where you don't need it. Perfect for excluding terminal emulators, IDEs, or apps with their own keyboard shortcuts.
+
+```toml
+[general]
+excluded_apps = ["com.apple.Terminal", "com.googlecode.iterm2"]
+```
+
+### CLI & Scripting
+
+Full IPC-based CLI lets you control Neru programmatically:
+
+```bash
+# Check status
+neru status
+
+# Trigger modes
+neru hints
+neru recursive_grid
+
+# Control mouse
+neru action left_click
+neru action move_mouse --x=100 --y=200
+
+# Health check
+neru doctor
+```
+
+Perfect for integration with other tools or building automation workflows.
+
+## Free Alternative To
+
+Neru provides the same core functionality as commercial alternatives, completely free:
+
+| Tool | Price | Neru |
+| --- | --- | --- |
+| [Homerow](https://www.homerow.app/) | $20/year | ✅ Free |
+| [Mouseless](https://mouseless.click/) | $29 one-time | ✅ Free |
+| [Wooshy](https://wooshy.app) | $8/month | ✅ Free |
+| [Shortcat](https://shortcat.app/) | Discontinued | ✅ Active |
+| [Vimac](https://github.com/dexterleng/vimac) | Unmaintained | ✅ Maintained |
+
+## Platform Support
+
+<Note>
+**Current Status:**
+- **macOS**: ✅ 100% Compatible - All features fully functional and stable
+- **Linux & Windows**: 🔲 Foundations ready - Requires community contribution
+
+Neru is architected for cross-platform support using Hexagonal Architecture (Ports and Adapters), but native implementations for Linux and Windows are not yet complete.
+</Note>
+
+### Works Everywhere on macOS
+
+| Category | Apps |
+| --- | --- |
+| Native macOS | Finder, Safari, Mail, System Settings, Terminal |
+| Electron | VS Code, Cursor, Slack, Spotify, Obsidian, Discord |
+| Browsers | Chrome, Firefox, Safari, Arc, Brave, Zen |
+| Creative | Figma, Adobe Illustrator, Photoshop |
+| System UI | Menubar, Dock, Mission Control, Notification Center |
+
+Grid and Recursive Grid modes work universally. Hints mode works where the accessibility tree is exposed.
+
+## Configuration Philosophy
+
+Neru is configured entirely through a single **TOML file** — no GUI required. Every keybinding, every color, every behavior is yours to define.
+
+**Why TOML over a settings UI?**
+
+- Version-control your config in your dotfiles
+- Edit faster than clicking through preference panels  
+- No UI = less code to maintain = more stability
+- Shareable, reproducible, scriptable
+
+```toml
+# ~/.config/neru/config.toml
+[hotkeys]
+"Cmd+Shift+C" = "recursive_grid"
+"Cmd+Shift+Space" = "hints"
+"Cmd+Shift+S" = "scroll"
+
+[general]
+excluded_apps = ["com.apple.Terminal"]
+
+[recursive_grid]
+grid_cols = 2
+grid_rows = 2
+keys = "uijk"
+```
+
+<Card title="See Full Configuration Reference" icon="book" href="/concepts/configuration-overview">
+Explore all available options, default values, and configuration examples.
+</Card>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Install Neru" icon="download" href="/installation">
+    Install via Homebrew, Nix, or build from source
+  </Card>
+  
+  <Card title="Quick Start Guide" icon="rocket" href="/quickstart">
+    Get up and running in 5 minutes
+  </Card>
+</CardGroup>

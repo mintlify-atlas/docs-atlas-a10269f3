@@ -1,0 +1,177 @@
+---
+title: General Configuration
+description: Global settings affecting all Neru functionality
+---
+
+## Overview
+
+General settings control core application behavior including excluded apps, cursor positioning, keyboard layout handling, and global exit keys.
+
+## Configuration Section
+
+```toml
+[general]
+```
+
+## Configuration Options
+
+### Application Exclusions
+
+<ParamField path="excluded_apps" type="array[string]" default="[]">
+  List of application bundle IDs where Neru won't activate. Useful for terminal apps or applications where you prefer keyboard-only workflows.
+  
+  **Finding Bundle IDs:**
+  ```bash
+  osascript -e 'id of app "Safari"'
+  # Output: com.apple.Safari
+  ```
+  
+  **Example:**
+  ```toml
+  excluded_apps = [
+      "com.apple.Terminal",
+      "com.googlecode.iterm2",
+      "com.microsoft.rdc.macos",
+  ]
+  ```
+</ParamField>
+
+### Accessibility
+
+<ParamField path="accessibility_check_on_start" type="boolean" default="true">
+  Verify accessibility permissions on launch. When `true`, shows error if permissions are missing. Set to `false` to skip check (may cause runtime errors).
+</ParamField>
+
+### Cursor Positioning
+
+<ParamField path="restore_cursor_position" type="boolean" default="false">
+  Return cursor to its original position before entering a navigation mode. When `true`, cursor returns to where it was; when `false`, cursor stays at the last navigated position.
+</ParamField>
+
+<ParamField path="center_cursor_position" type="boolean" default="false">
+  Center the cursor on the current screen when exiting a navigation mode. Provides predictable cursor location after navigation.
+</ParamField>
+
+<Note>
+  `restore_cursor_position` and `center_cursor_position` are mutually exclusive. Only one can be enabled at a time.
+</Note>
+
+### Keyboard Layout
+
+<ParamField path="kb_layout_to_use" type="string" default='""'>
+  Optional InputSourceID for keyboard layout reference. Ensures hotkeys and mode keys remain stable when switching input sources (e.g., EN/RU).
+  
+  **macOS Example:**
+  ```toml
+  kb_layout_to_use = "com.apple.keylayout.ABC"
+  ```
+  
+  **Finding Available Layouts:**
+  ```bash
+  defaults read com.apple.HIToolbox AppleEnabledInputSources
+  ```
+  
+  **Automatic Fallback:** When empty, Neru auto-selects the first available layout:
+  1. macOS: `com.apple.keylayout.ABC`, `com.apple.keylayout.US`, or any English layout
+  2. Current keyboard layout (last resort)
+</ParamField>
+
+### Mode Exit Keys
+
+<ParamField path="mode_exit_keys" type="array[string]" default='["Escape"]'>
+  Global keys that exit any active mode (hints, grid, scroll, recursive_grid). Per-mode exit keys can be added in each mode's configuration and will be merged with these global keys.
+  
+  **Valid key formats:**
+  - Plain keys: `Escape`, `Return`, `Tab`, `Space`, `Backspace`, `Delete`
+  - Navigation keys: `Home`, `End`, `PageUp`, `PageDown`, `Up`, `Down`, `Left`, `Right`
+  - Function keys: `F1` through `F20`
+  - With modifiers: `Ctrl+C`, `Cmd+Q`, `Alt+X`
+  - Single characters: any letter or digit
+  
+  **Examples:**
+  ```toml
+  mode_exit_keys = ["Escape"]           # Default
+  mode_exit_keys = ["Escape", "q"]     # Multiple keys
+  mode_exit_keys = ["Ctrl+C"]          # Vim-style
+  ```
+</ParamField>
+
+<Warning>
+  This array **cannot be empty** — at least one exit key must be defined.
+</Warning>
+
+### Key Passthrough
+
+<ParamField path="passthrough_unbounded_keys" type="boolean" default="false">
+  Allow unbound Cmd/Ctrl/Alt shortcuts to reach macOS while a mode is active. When `true`, modifier shortcuts that Neru doesn't use (like `Cmd+Tab`, `Cmd+Space`) pass through to the system.
+  
+  **Use case:** Keep macOS shortcuts working while in navigation modes.
+</ParamField>
+
+<ParamField path="passthrough_unbounded_keys_blacklist" type="array[string]" default="[]">
+  Shortcuts that should stay consumed by Neru even when `passthrough_unbounded_keys` is enabled.
+  
+  **Requirements:**
+  - Each entry must include at least one modifier: `Cmd`, `Ctrl`, `Alt`, or `Option`
+  - Plain keys or Shift-only combos are not valid
+  
+  **Example:**
+  ```toml
+  passthrough_unbounded_keys = true
+  passthrough_unbounded_keys_blacklist = ["Cmd+W", "Cmd+Q"]
+  ```
+</ParamField>
+
+### Screen Sharing
+
+<ParamField path="hide_overlay_in_screen_share" type="boolean" default="false">
+  Hide Neru overlays during screen sharing. When `true`, overlays are hidden in shared screens but remain visible locally.
+  
+  **Compatibility:**
+  - macOS 14 and earlier: Works well with most apps
+  - macOS 15.4+: Limited effectiveness with ScreenCaptureKit-based apps
+  
+  Uses macOS `NSWindow.sharingType` API. Test with your specific video conferencing software.
+</ParamField>
+
+## Complete Example
+
+<CodeGroup>
+```toml Minimal
+[general]
+excluded_apps = ["com.apple.Terminal"]
+accessibility_check_on_start = true
+mode_exit_keys = ["Escape"]
+```
+
+```toml Advanced
+[general]
+excluded_apps = [
+    "com.apple.Terminal",
+    "com.googlecode.iterm2",
+    "com.microsoft.rdc.macos",
+]
+accessibility_check_on_start = true
+restore_cursor_position = false
+center_cursor_position = false
+kb_layout_to_use = "com.apple.keylayout.ABC"
+mode_exit_keys = ["Escape", "Ctrl+C"]
+passthrough_unbounded_keys = true
+passthrough_unbounded_keys_blacklist = ["Cmd+W", "Cmd+Q"]
+hide_overlay_in_screen_share = true
+```
+</CodeGroup>
+
+## Validation Rules
+
+- `restore_cursor_position` and `center_cursor_position` cannot both be `true`
+- `kb_layout_to_use` cannot be whitespace-only
+- `mode_exit_keys` must contain at least one key
+- `passthrough_unbounded_keys_blacklist` entries must include a modifier
+
+## Related Configuration
+
+- [Hotkeys](/api/config/hotkeys) - Global hotkey bindings
+- [Hints Configuration](/api/config/hints) - Per-mode exit keys
+- [Grid Configuration](/api/config/grid) - Per-mode exit keys
+- [Logging](/api/config/logging) - Debug and error logging

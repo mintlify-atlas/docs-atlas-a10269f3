@@ -1,0 +1,444 @@
+---
+title: Hints Mode
+description: Click UI elements with keyboard labels using macOS Accessibility APIs
+---
+
+Hints mode overlays short keyboard labels on clickable UI elements, enabling fast navigation without touching the mouse.
+
+## How It Works
+
+Neru uses macOS Accessibility APIs to identify clickable elements in the active application and overlays hint labels on them. Type the label to select an element, then perform an action (click, right-click, etc.).
+
+## Activation
+
+<Steps>
+  <Step title="Via Hotkey">
+    Press `Cmd+Shift+Space` (default) to activate hints mode.
+    
+    ```toml
+    [hotkeys]
+    "Cmd+Shift+Space" = "hints"
+    ```
+  </Step>
+  
+  <Step title="Via CLI">
+    ```bash
+    neru hints
+    ```
+  </Step>
+  
+  <Step title="With Auto-Action">
+    Auto-click on selection:
+    ```bash
+    neru hints --action left_click
+    ```
+    
+    Or configure the hotkey:
+    ```toml
+    [hotkeys]
+    "Cmd+Shift+Space" = "hints --action left_click"
+    ```
+  </Step>
+</Steps>
+
+## Basic Workflow
+
+1. **Activate hints mode** - Press your configured hotkey or run `neru hints`
+2. **Type the label** - Hints appear on clickable elements with labels like "aa", "ab", "ac"
+3. **Execute action** - Type the complete label to move cursor and perform action
+4. **Exit** - Press `Escape` or configure `auto_exit_actions` for automatic exit
+
+<Tip>
+Hints mode works best for applications with standard macOS UI elements (buttons, links, menus, forms).
+</Tip>
+
+## Key Bindings
+
+### Default Keys
+
+| Key | Action |
+|-----|--------|
+| `asdfghjkl` | Characters used for hint labels (configurable) |
+| `Backspace` | Delete last typed character |
+| `Shift+L` | Left click at cursor (while in hints mode) |
+| `Shift+R` | Right click at cursor |
+| `Shift+M` | Middle click at cursor |
+| `Arrow keys` | Fine-tune cursor position (10px per press) |
+| `Escape` | Exit hints mode |
+
+### Customizing Hint Characters
+
+```toml
+[hints]
+hint_characters = "asdfghjkl"    # Home row (default, recommended)
+# hint_characters = "jkl;asdfg"  # Alternative home row
+# hint_characters = "hjklasdfg"  # Vim-style
+```
+
+<Note>
+Use at least 2 unique ASCII characters. Order matters for ergonomics - put the most comfortable keys first.
+</Note>
+
+### Custom Backspace Key
+
+```toml
+[hints]
+backspace_key = "Backspace"  # default
+# backspace_key = "Delete"   # macOS forward-delete key
+# backspace_key = "x"        # single character
+```
+
+## Configuration Options
+
+### Auto-Exit After Actions
+
+Automatically exit hints mode after performing specific actions:
+
+```toml
+[hints]
+# Exit after left or middle click
+auto_exit_actions = ["left_click", "middle_click"]
+```
+
+<Warning>
+Avoid including `move_mouse_relative` in `auto_exit_actions` - it will exit on every arrow key press, preventing fine cursor adjustments.
+</Warning>
+
+### Visibility Options
+
+Control which system areas show hints:
+
+```toml
+[hints]
+include_menubar_hints = true          # Show hints on menubar items
+include_dock_hints = true             # Show hints on Dock items
+include_nc_hints = false              # Show hints in Notification Center
+include_stage_manager_hints = false   # Show hints in Stage Manager
+
+# Add specific menubar apps
+additional_menubar_hints_targets = [
+    "com.apple.controlcenter",
+    "com.apple.systemuiserver",
+]
+```
+
+<Note>
+`detect_mission_control` is only available on macOS 15.4+ (Tahoe). Do not enable on earlier versions as it causes false positives.
+</Note>
+
+### Clickable Element Types
+
+Define which UI element types generate hints:
+
+```toml
+[hints]
+clickable_roles = [
+    "AXButton",
+    "AXCheckBox",
+    "AXLink",
+    "AXPopUpButton",
+    "AXTextField",
+    # ... see default-config.toml for full list
+]
+```
+
+### Performance Tuning
+
+```toml
+[hints]
+# Delay after click before refreshing hints (useful for slow-loading apps)
+mouse_action_refresh_delay = 500  # 0.5 seconds (0-10000ms)
+
+# Max accessibility tree depth (prevents stack overflow)
+max_depth = 50  # 0 = unlimited
+
+# Parallel processing threshold
+parallel_threshold = 20  # Lower = more parallelization
+```
+
+## App-Specific Configuration
+
+### Electron Apps (VS Code, Slack, Obsidian)
+
+Electron apps require special accessibility support:
+
+```toml
+[hints.additional_ax_support]
+enable = true
+
+# Auto-detected apps (no need to add):
+# - VS Code (com.microsoft.VSCode)
+# - Slack (com.tinyspeck.slackmacgap)
+# - Spotify (com.spotify.client)
+# - Obsidian (md.obsidian)
+# - Windsurf (com.exafunction.windsurf)
+
+# Add custom Electron apps if needed
+additional_electron_bundles = ["com.example.electronapp"]
+```
+
+### Chromium Browsers (Chrome, Brave, Arc)
+
+```toml
+[hints.additional_ax_support]
+enable = true
+
+# Auto-detected browsers:
+# - Google Chrome (com.google.Chrome)
+# - Brave Browser (com.brave.Browser)
+# - Arc Browser (company.thebrowser.Browser)
+# - Helium (net.imput.helium)
+
+additional_chromium_bundles = ["com.example.browser"]
+```
+
+### Firefox Browsers
+
+```toml
+[hints.additional_ax_support]
+enable = true
+
+# Auto-detected:
+# - Mozilla Firefox (org.mozilla.firefox)
+# - Zen Browser (app.zen-browser.zen)
+
+additional_firefox_bundles = ["com.example.firefox"]
+```
+
+### Custom App Roles
+
+Add custom clickable roles for specific applications:
+
+```toml
+# Chrome: add tab groups
+[[hints.app_configs]]
+bundle_id = "com.google.Chrome"
+additional_clickable_roles = ["AXTabGroup"]
+
+# Adobe apps: custom roles
+[[hints.app_configs]]
+bundle_id = "com.adobe.illustrator"
+additional_clickable_roles = ["AXStaticText", "AXImage"]
+ignore_clickable_check = true
+
+# Safari: delay for dynamic content
+[[hints.app_configs]]
+bundle_id = "com.apple.Safari"
+mouse_action_refresh_delay = 1000  # 1 second
+```
+
+<Tip>
+Find bundle IDs with: `osascript -e 'id of app "AppName"'`
+</Tip>
+
+## Visual Customization
+
+### Font and Size
+
+```toml
+[hints.ui]
+font_size = 10              # 6-72
+font_family = "SF Mono"     # Empty string = system font
+```
+
+### Colors (Theme-Aware)
+
+Neru automatically adapts to Light/Dark mode:
+
+```toml
+[hints.ui]
+# Light mode
+background_color_light = "#F200CFCF"   # Cyan, 95% opacity
+text_color_light = "#FF003554"         # Deep teal
+matched_text_color_light = "#FFAAEEFF" # Light cyan (typed chars)
+border_color_light = "#FF008A8A"       # Teal border
+
+# Dark mode
+background_color_dark = "#F2007A9E"    # Deep blue
+text_color_dark = "#FFFFFFFF"          # White
+matched_text_color_dark = "#FF003554"  # Dark teal
+border_color_dark = "#FF00B4D8"        # Bright blue border
+```
+
+<Note>
+Color format: `#AARRGGBB` (alpha + RGB). See [Color Reference](/api/config/appearance) for opacity values.
+</Note>
+
+### Spacing and Borders
+
+```toml
+[hints.ui]
+border_radius = -1    # -1 = auto pill shape
+border_width = 1      # >= 0
+padding_x = -1        # -1 = auto based on font size
+padding_y = -1        # -1 = auto based on font size
+```
+
+## Real-World Examples
+
+### Example 1: Web Browsing
+
+```bash
+# Activate hints
+neru hints
+
+# Type hint label to click links
+# Type "as" -> cursor moves to link with "as" label and clicks
+
+# Right-click a link
+neru hints --action right_click
+# Type label -> opens context menu
+```
+
+### Example 2: Form Navigation
+
+```bash
+# Activate hints with auto-click
+neru hints --action left_click
+
+# Type labels to jump between form fields:
+# "aa" -> clicks first field
+# Type content...
+# "ab" -> clicks next field
+```
+
+### Example 3: Fine-Tuning Position
+
+```bash
+# Activate hints
+neru hints
+
+# Type partial label "a" -> filters hints
+# Use arrow keys to adjust position
+# Press Shift+L to click at adjusted position
+```
+
+### Example 4: Menubar Navigation
+
+```toml
+# Enable menubar hints
+[hints]
+include_menubar_hints = true
+```
+
+```bash
+# Activate hints
+neru hints
+
+# Type menubar item label to click menu
+# Type submenu item label to execute command
+```
+
+## Tips and Best Practices
+
+<Accordion title="Use Home Row Characters">
+Stick with `asdfghjkl` for hint characters - these are the most comfortable keys to type without looking at the keyboard.
+</Accordion>
+
+<Accordion title="Enable Auto-Exit for Faster Workflow">
+```toml
+[hints]
+auto_exit_actions = ["left_click", "middle_click"]
+```
+This eliminates the need to press Escape after each action.
+</Accordion>
+
+<Accordion title="Combine with --action Flag">
+For repetitive clicking workflows:
+```bash
+neru hints --action left_click
+```
+Or configure the hotkey:
+```toml
+[hotkeys]
+"Cmd+Shift+Space" = "hints --action left_click"
+```
+</Accordion>
+
+<Accordion title="Use Arrow Keys for Precision">
+After selecting a hint, use arrow keys to fine-tune the cursor position before clicking.
+</Accordion>
+
+<Accordion title="Enable Additional AX Support Early">
+If you work with Electron apps or Chromium browsers, enable AX support in your config:
+```toml
+[hints.additional_ax_support]
+enable = true
+```
+</Accordion>
+
+## Troubleshooting
+
+### No Hints Appear
+
+<Steps>
+  <Step title="Check Daemon Status">
+    ```bash
+    neru status
+    ```
+  </Step>
+  
+  <Step title="Verify Permissions">
+    ```bash
+    neru doctor
+    ```
+    Grant Accessibility permissions in System Settings.
+  </Step>
+  
+  <Step title="Test Different App">
+    Try Safari or Finder - if hints work there, the issue is app-specific.
+  </Step>
+  
+  <Step title="Check Exclusions">
+    ```toml
+    [general]
+    excluded_apps = [
+        # "com.apple.Safari",  # Remove if present
+    ]
+    ```
+  </Step>
+</Steps>
+
+### Hints in Electron Apps
+
+Enable additional AX support:
+
+```toml
+[hints.additional_ax_support]
+enable = true
+```
+
+Restart Neru:
+```bash
+pkill neru && neru launch
+```
+
+### Hints Misaligned
+
+Rare issue. Enable debug logging:
+
+```toml
+[logging]
+log_level = "debug"
+```
+
+Check logs:
+```bash
+tail -f ~/Library/Logs/neru/app.log
+```
+
+### Slow Performance
+
+```toml
+[hints]
+max_depth = 30              # Reduce from default 50
+parallel_threshold = 10     # Lower for more parallelization
+mouse_action_refresh_delay = 0  # Disable delay
+```
+
+## Next Steps
+
+- [Grid Mode](/guides/grid-mode) - Coordinate-based navigation
+- [Recursive Grid](/guides/recursive-grid) - Precise cell-based selection
+- [Mouse Actions](/guides/mouse-actions) - Clicking and cursor control
+- [Configuration Reference](/concepts/configuration-overview) - Complete config options

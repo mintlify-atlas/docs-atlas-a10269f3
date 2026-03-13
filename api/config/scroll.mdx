@@ -1,0 +1,198 @@
+---
+title: Scroll Configuration
+description: Scroll mode keybindings, scroll amounts, and navigation behavior
+---
+
+## Overview
+
+Scroll mode enables Vim-style scrolling at the cursor position without reaching for the mouse. It's ideal for scrolling documents, code review in terminal or editors, and navigating long web pages.
+
+## Configuration Section
+
+```toml
+[scroll]
+```
+
+## Scroll Amounts
+
+<ParamField path="scroll_step" type="integer" default="50">
+  Pixels per j/k press (one line). Valid range: ≥1.
+  
+  **Examples:**
+  - `50` = default, approximately one line
+  - `25` = finer control
+  - `100` = faster scrolling
+</ParamField>
+
+<ParamField path="scroll_step_half" type="integer" default="500">
+  Pixels for Ctrl+D/U (half page). Valid range: ≥1.
+  
+  **Use case:** Half-page jumps for quick navigation.
+</ParamField>
+
+<ParamField path="scroll_step_full" type="integer" default="1000000">
+  Pixels for gg/G (top/bottom). Valid range: ≥1.
+  
+  Large value ensures jumping to absolute top/bottom of scrollable content.
+</ParamField>
+
+## Mode Exit
+
+<ParamField path="mode_exit_keys" type="array[string]" default="[]">
+  Additional keys that exit scroll mode (merged with `general.mode_exit_keys`). Must not conflict with scroll key bindings.
+  
+  **Example:**
+  ```toml
+  mode_exit_keys = ["q", "Ctrl+C"]
+  ```
+</ParamField>
+
+## Key Bindings
+
+```toml
+[scroll.key_bindings]
+```
+
+Configure which keys perform each action. Each action can have multiple keys.
+
+### Movement Actions
+
+<ParamField path="scroll_up" type="array[string]" default='["k", "Up"]'>
+  Keys that scroll up by `scroll_step` pixels.
+</ParamField>
+
+<ParamField path="scroll_down" type="array[string]" default='["j", "Down"]'>
+  Keys that scroll down by `scroll_step` pixels.
+</ParamField>
+
+<ParamField path="scroll_left" type="array[string]" default='["h", "Left"]'>
+  Keys that scroll left by `scroll_step` pixels.
+</ParamField>
+
+<ParamField path="scroll_right" type="array[string]" default='["l", "Right"]'>
+  Keys that scroll right by `scroll_step` pixels.
+</ParamField>
+
+### Navigation Actions
+
+<ParamField path="go_top" type="array[string]" default='["gg", "Cmd+Up"]'>
+  Keys that jump to top of content. Uses `scroll_step_full` pixels.
+</ParamField>
+
+<ParamField path="go_bottom" type="array[string]" default='["Shift+G", "Cmd+Down"]'>
+  Keys that jump to bottom of content. Uses `scroll_step_full` pixels.
+</ParamField>
+
+### Page Movement Actions
+
+<ParamField path="page_up" type="array[string]" default='["Ctrl+U", "PageUp"]'>
+  Keys that scroll up by `scroll_step_half` pixels (half page).
+</ParamField>
+
+<ParamField path="page_down" type="array[string]" default='["Ctrl+D", "PageDown"]'>
+  Keys that scroll down by `scroll_step_half` pixels (half page).
+</ParamField>
+
+## Key Format Reference
+
+| Format              | Example                          | Description                      |
+|---------------------|----------------------------------|----------------------------------|
+| Single key          | `"j"`, `"k"`, `"g"`            | Direct press                     |
+| Arrow keys          | `"Up"`, `"Down"`, `"Left"`, `"Right"` | Named arrow keys                 |
+| Modifier combo      | `"Ctrl+U"`, `"Cmd+Down"`        | Modifier + key                   |
+| Special keys        | `"PageUp"`, `"Home"`, `"End"`   | Named special keys               |
+| Function keys       | `"F1"`, `"F12"`, `"F20"`        | Function keys F1 through F20     |
+| Multi-key sequence  | `"gg"`                           | Two-character sequence (500ms timeout) |
+
+## Complete Examples
+
+<CodeGroup>
+```toml Vim-style
+[scroll]
+scroll_step = 50
+scroll_step_half = 500
+scroll_step_full = 1000000
+
+[scroll.key_bindings]
+scroll_up = ["k"]
+scroll_down = ["j"]
+scroll_left = ["h"]
+scroll_right = ["l"]
+go_top = ["gg"]
+go_bottom = ["Shift+G"]
+page_up = ["Ctrl+U"]
+page_down = ["Ctrl+D"]
+```
+
+```toml Mac-style
+[scroll]
+scroll_step = 50
+scroll_step_half = 500
+scroll_step_full = 1000000
+
+[scroll.key_bindings]
+scroll_up = ["Up"]
+scroll_down = ["Down"]
+scroll_left = ["Left"]
+scroll_right = ["Right"]
+go_top = ["Cmd+Up"]
+go_bottom = ["Cmd+Down"]
+page_up = ["PageUp"]
+page_down = ["PageDown"]
+```
+
+```toml Custom with Home/End
+[scroll]
+scroll_step = 75
+scroll_step_half = 600
+scroll_step_full = 1000000
+
+[scroll.key_bindings]
+scroll_up = ["k", "Up"]
+scroll_down = ["j", "Down"]
+scroll_left = ["h"]
+scroll_right = ["l"]
+go_top = ["Home", "gg"]
+go_bottom = ["End", "Shift+G"]
+page_up = ["PageUp", "Ctrl+U"]
+page_down = ["PageDown", "Ctrl+D"]
+```
+</CodeGroup>
+
+## Advanced: Multiple Keys per Action
+
+Each action can have multiple key bindings, allowing hybrid key schemes:
+
+```toml
+[scroll.key_bindings]
+# Support both Vim and arrow keys
+scroll_up = ["k", "Up"]
+scroll_down = ["j", "Down"]
+
+# Multiple ways to reach top/bottom
+go_top = ["gg", "Cmd+Up", "Home"]
+go_bottom = ["Shift+G", "Cmd+Down", "End"]
+```
+
+## Validation Rules
+
+- All scroll amounts must be ≥1
+- Each action must have at least one key
+- Keys must not conflict with `mode_exit_keys`
+- Multi-key sequences must be exactly 2 letters (a-z, A-Z)
+- Modifier combos must use valid modifiers: `Cmd`, `Ctrl`, `Alt`, `Shift`, `Option`
+
+## Usage
+
+1. Enter scroll mode via hotkey or CLI: `neru scroll`
+2. Use configured keys to navigate:
+   - `j`/`k` - Scroll line by line
+   - `Ctrl+D`/`Ctrl+U` - Half-page jumps
+   - `gg`/`Shift+G` - Jump to top/bottom
+3. Press escape (or configured exit key) to exit
+
+## Related Configuration
+
+- [General Settings](/api/config/general) - Global exit keys and passthrough
+- [Appearance](/api/config/appearance) - Scroll mode indicator settings
+- [Hotkeys](/api/config/hotkeys) - Activating scroll mode

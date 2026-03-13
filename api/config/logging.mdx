@@ -1,0 +1,296 @@
+---
+title: Logging Configuration
+description: Log levels, file locations, rotation, and output formats
+---
+
+## Overview
+
+Logging configuration controls debug output, file management, and log rotation. Essential for troubleshooting issues and understanding Neru's behavior.
+
+## Configuration Section
+
+```toml
+[logging]
+```
+
+## Configuration Options
+
+<ParamField path="log_level" type="string" default='info'>
+  Log verbosity level. Controls which messages are recorded.
+  
+  **Valid levels:**
+  - `"debug"` - Verbose output including internal operations
+  - `"info"` - General informational messages (default)
+  - `"warn"` - Warning messages only
+  - `"error"` - Error messages only
+  
+  **Recommended:**
+  - Development: `"debug"`
+  - Production: `"info"` or `"warn"`
+  - Troubleshooting: `"debug"`
+</ParamField>
+
+<ParamField path="log_file" type="string" default='"'>
+  Custom log file path. When empty, uses default location.
+  
+  **Default locations:**
+  - macOS: `~/Library/Logs/neru/neru.log`
+  - Linux: `~/.local/share/neru/logs/neru.log`
+  - Windows: `%LOCALAPPDATA%\neru\logs\neru.log`
+  
+  **Example:**
+  ```toml
+  log_file = "/tmp/neru-debug.log"
+  log_file = "~/custom-logs/neru.log"
+  ```
+</ParamField>
+
+<ParamField path="structured_logging" type="boolean" default="true">
+  Enable JSON-formatted structured logging. When `true`, logs are written in JSON format for machine parsing. When `false`, uses human-readable text format.
+  
+  **JSON output example:**
+  ```json
+  {"level":"info","time":"2026-03-13T10:30:45Z","msg":"Mode activated","mode":"hints"}
+  ```
+  
+  **Text output example:**
+  ```
+  2026-03-13 10:30:45 INFO Mode activated mode=hints
+  ```
+</ParamField>
+
+## File Logging Control
+
+<ParamField path="disable_file_logging" type="boolean" default="true">
+  Disable file logging entirely. When `true`, logs only to console. When `false`, logs to both console and file.
+  
+  **Use cases:**
+  - `true` - Minimal disk usage, console-only output
+  - `false` - Persistent logs for debugging and analysis
+</ParamField>
+
+## Log Rotation
+
+Automatic log file rotation prevents unbounded disk usage.
+
+<ParamField path="max_file_size" type="integer" default="10">
+  Maximum log file size in megabytes before rotation. When the current log exceeds this size, it's rotated to a backup file and a new log is started.
+  
+  Valid range: ≥1 MB
+  
+  **Examples:**
+  - `10` = 10 MB (default)
+  - `50` = 50 MB (larger files, less frequent rotation)
+  - `1` = 1 MB (frequent rotation, smaller files)
+</ParamField>
+
+<ParamField path="max_backups" type="integer" default="5">
+  Maximum number of old log files to retain. When exceeded, the oldest backup is deleted.
+  
+  Valid range: ≥0 (0 = no limit)
+  
+  **Disk usage:** `max_file_size × (max_backups + 1)` MB
+  
+  **Examples:**
+  - `5` = Keep 5 old logs + current (default)
+  - `10` = Keep 10 old logs + current
+  - `0` = Keep all old logs (unlimited)
+</ParamField>
+
+<ParamField path="max_age" type="integer" default="30">
+  Maximum number of days to retain old log files. Files older than this are automatically deleted regardless of `max_backups`.
+  
+  Valid range: ≥0 (0 = no age limit)
+  
+  **Examples:**
+  - `30` = Delete logs older than 30 days (default)
+  - `7` = Delete logs older than 1 week
+  - `0` = Never delete based on age
+</ParamField>
+
+## Complete Examples
+
+<CodeGroup>
+```toml Default (minimal)
+[logging]
+log_level = "info"
+log_file = ""
+structured_logging = true
+disable_file_logging = true
+```
+
+```toml Development (verbose)
+[logging]
+log_level = "debug"
+log_file = ""
+structured_logging = false  # Human-readable
+disable_file_logging = false
+max_file_size = 50
+max_backups = 10
+max_age = 7
+```
+
+```toml Production (balanced)
+[logging]
+log_level = "info"
+log_file = ""
+structured_logging = true
+disable_file_logging = false
+max_file_size = 10
+max_backups = 5
+max_age = 30
+```
+
+```toml Troubleshooting (maximum detail)
+[logging]
+log_level = "debug"
+log_file = "/tmp/neru-debug.log"
+structured_logging = false
+disable_file_logging = false
+max_file_size = 100
+max_backups = 0  # Keep all
+max_age = 0      # Never delete
+```
+
+```toml Console-only (no files)
+[logging]
+log_level = "warn"
+log_file = ""
+structured_logging = false
+disable_file_logging = true
+```
+</CodeGroup>
+
+## Log Rotation Behavior
+
+When a log file reaches `max_file_size`:
+
+1. Current log is renamed: `neru.log` → `neru.log.1`
+2. Previous backups are incremented: `neru.log.1` → `neru.log.2`, etc.
+3. New empty `neru.log` is created
+4. If `max_backups` is exceeded, oldest backup is deleted
+5. Files older than `max_age` days are deleted
+
+### Example Rotation Sequence
+
+```
+Initial state:
+  neru.log (8 MB)
+
+After reaching 10 MB:
+  neru.log (new, 0 KB)
+  neru.log.1 (10 MB)
+
+After second rotation:
+  neru.log (new, 0 KB)
+  neru.log.1 (10 MB)
+  neru.log.2 (10 MB)
+
+After max_backups=2 reached:
+  neru.log (new, 0 KB)
+  neru.log.1 (10 MB)
+  neru.log.2 (10 MB)
+  # neru.log.3 deleted
+```
+
+## Debugging with Logs
+
+### Common Debug Scenarios
+
+<Accordion title="Hotkeys Not Working">
+  ```toml
+  [logging]
+  log_level = "debug"
+  disable_file_logging = false
+  ```
+  
+  Look for:
+  - `"Hotkey registered"` messages
+  - `"Hotkey triggered"` events
+  - Permission errors
+</Accordion>
+
+<Accordion title="Hints Not Appearing">
+  ```toml
+  [logging]
+  log_level = "debug"
+  disable_file_logging = false
+  ```
+  
+  Look for:
+  - Accessibility tree traversal messages
+  - Element detection count
+  - AX permission errors
+</Accordion>
+
+<Accordion title="Performance Issues">
+  ```toml
+  [logging]
+  log_level = "info"
+  structured_logging = true
+  disable_file_logging = false
+  ```
+  
+  Look for:
+  - Timing information in structured logs
+  - Mode activation duration
+  - Element processing count
+</Accordion>
+
+## Viewing Logs
+
+### Console Output
+
+When running Neru from terminal:
+```bash
+neru launch
+# Logs print to stdout/stderr
+```
+
+### File Logs
+
+<CodeGroup>
+```bash macOS
+# View current log
+tail -f ~/Library/Logs/neru/neru.log
+
+# View with search
+grep "error" ~/Library/Logs/neru/neru.log
+```
+
+```bash Linux
+# View current log
+tail -f ~/.local/share/neru/logs/neru.log
+
+# View with search
+grep "error" ~/.local/share/neru/logs/neru.log
+```
+
+```powershell Windows
+# View current log
+Get-Content "$env:LOCALAPPDATA\neru\logs\neru.log" -Tail 50 -Wait
+
+# View with search
+Select-String -Path "$env:LOCALAPPDATA\neru\logs\neru.log" -Pattern "error"
+```
+</CodeGroup>
+
+## Validation Rules
+
+- `log_level` must be one of: `"debug"`, `"info"`, `"warn"`, `"error"`
+- `max_file_size` must be ≥1
+- `max_backups` must be ≥0
+- `max_age` must be ≥0
+
+## Performance Considerations
+
+- **Debug level:** Significant performance impact due to verbose output. Use only when troubleshooting.
+- **Structured logging:** Minimal performance impact. JSON serialization is fast.
+- **File logging:** Negligible impact with asynchronous writes.
+- **Rotation:** Triggered only when size limit reached, minimal overhead.
+
+## Related Configuration
+
+- [General Settings](/api/config/general) - Accessibility checks and app exclusions
+- [Hints Configuration](/api/config/hints) - Debug hint detection issues
+- [Grid Configuration](/api/config/grid) - Debug grid issues

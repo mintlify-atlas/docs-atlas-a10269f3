@@ -1,0 +1,148 @@
+---
+title: Hotkeys Configuration
+description: Global hotkey definitions, syntax, and action bindings
+---
+
+## Overview
+
+Hotkeys enable triggering Neru navigation modes from anywhere on your system without using the CLI. Configure keyboard shortcuts to activate hints, grid, scroll, or recursive grid modes, or execute shell commands directly.
+
+## Configuration Section
+
+```toml
+[hotkeys]
+```
+
+## Hotkey Syntax
+
+**Format:** `"Modifier1+Modifier2+Key" = "action"`
+
+### Modifiers
+
+<ParamField path="modifiers" type="string" required>
+  Case-insensitive modifiers that can be combined:
+  
+  - `Cmd` - Command key (macOS)
+  - `Ctrl` - Control key
+  - `Alt` / `Option` - Alt/Option key
+  - `Shift` - Shift key
+</ParamField>
+
+### Action Types
+
+<ParamField path="action" type="string" required>
+  The action to execute when the hotkey is pressed:
+  
+  - **Neru commands**: `"hints"`, `"grid"`, `"recursive_grid"`, `"scroll"`
+  - **Commands with options**: `"hints --action left_click"`, `"grid --action left_click"`
+  - **Shell commands**: `"exec command"` (prefix with `exec`)
+</ParamField>
+
+## Configuration Options
+
+<ParamField path="bindings" type="map[string]string">
+  Map of hotkey combinations to actions. Each key is a hotkey string, each value is an action.
+  
+  **Default:**
+  ```toml
+  [hotkeys]
+  "Cmd+Shift+Space" = "hints"
+  "Cmd+Shift+G" = "grid"
+  "Cmd+Shift+C" = "recursive_grid"
+  "Cmd+Shift+S" = "scroll"
+  ```
+</ParamField>
+
+<Warning>
+  Defining **any** custom hotkey **replaces ALL defaults**. You must explicitly define every hotkey you want to use.
+</Warning>
+
+## Examples
+
+### Minimal Configuration
+
+<CodeGroup>
+```toml Basic
+[hotkeys]
+"Cmd+Shift+Space" = "hints"
+```
+
+```toml With Auto-Click
+[hotkeys]
+"Cmd+Shift+Space" = "hints --action left_click"
+"Cmd+Shift+G" = "grid --action left_click"
+"Cmd+Shift+S" = "scroll"
+```
+</CodeGroup>
+
+### Shell Commands
+
+<CodeGroup>
+```toml Terminal and Apps
+[hotkeys]
+# Open Terminal
+"Cmd+Alt+T" = "exec open -a Terminal"
+
+# Open VS Code
+"Cmd+Alt+C" = "exec open -a 'Visual Studio Code'"
+```
+
+```toml Scripts and Notifications
+[hotkeys]
+# Run custom script
+"Cmd+Alt+S" = "exec ~/scripts/screenshot.sh"
+
+# Show notification
+"Cmd+Alt+N" = "exec osascript -e 'display notification \"Hello!\" with title \"Neru\"'"
+```
+</CodeGroup>
+
+### Alternative Hotkey Mappings
+
+<CodeGroup>
+```toml Vim-style
+[hotkeys]
+"Ctrl+;" = "hints"
+"Ctrl+G" = "grid"
+"Ctrl+R" = "recursive_grid"
+"Ctrl+S" = "scroll"
+```
+
+```toml Function Keys
+[hotkeys]
+"F1" = "hints --action left_click"
+"F2" = "grid --action left_click"
+"F3" = "recursive_grid --action left_click"
+"F4" = "scroll"
+```
+</CodeGroup>
+
+## Validation Rules
+
+- Hotkey must contain at least one modifier and one key
+- Modifiers are case-insensitive
+- Actions must be valid Neru commands or start with `exec`
+- Duplicate hotkey definitions will use the last value
+
+## Alternative: External Hotkey Managers
+
+For more complex hotkey setups, consider using external tools:
+
+### skhd Configuration
+
+```bash
+# ~/.config/skhd/skhdrc
+ctrl - f : neru hints
+ctrl - g : neru grid
+ctrl - r : neru hints --action right_click
+```
+
+### Karabiner Elements
+
+Use [Karabiner Elements](https://karabiner-elements.pqrs.org/) for advanced key remapping and complex modifications.
+
+## Related Configuration
+
+- [General Settings](/api/config/general) - Global exit keys and keyboard layout
+- [Hints Configuration](/api/config/hints) - Hint mode settings
+- [Grid Configuration](/api/config/grid) - Grid mode settings

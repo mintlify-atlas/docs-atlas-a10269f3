@@ -1,80 +1,546 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quick Start
+description: Get up and running with Neru in 5 minutes
 ---
 
-## Get started in three steps
-
-Get your documentation site running locally and make your first customization.
-
-### Step 1: Set up your local environment
-
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+This guide walks you through installing Neru, granting permissions, and trying each navigation mode.
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+Already installed? Skip to [Try Navigation Modes](#try-navigation-modes).
 </Note>
+
+---
+
+## Install Neru
+
+<Steps>
+  <Step title="Install via Homebrew">
+    ```bash
+    brew tap y3owk1n/tap
+    brew install --cask y3owk1n/tap/neru
+    ```
+    
+    <Accordion title="Other installation methods">
+      See the [Installation Guide](/installation) for Nix and source builds.
+    </Accordion>
+  </Step>
+  
+  <Step title="Grant Accessibility Permissions">
+    1. Open **System Settings → Privacy & Security → Accessibility**
+    2. Click the **+** button
+    3. Select **Neru** and enable the toggle
+    
+    <Warning>
+    Neru requires accessibility permissions to capture keyboard events and interact with other applications.
+    </Warning>
+  </Step>
+  
+  <Step title="Launch Neru">
+    ```bash
+    open -a Neru
+    ```
+    
+    Or from the CLI:
+    ```bash
+    neru launch
+    ```
+    
+    You should see the Neru icon in your menu bar.
+  </Step>
+  
+  <Step title="Verify Installation">
+    ```bash
+    neru --version
+    neru status
+    ```
+    
+    Expected output:
+    ```bash
+    $ neru --version
+    Neru version v0.x.x
+    Git commit: abc1234
+    Build date: 2026-03-13
+    
+    $ neru status
+    running
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Default Hotkeys
+
+Neru comes with sensible defaults. All hotkeys are fully remappable in your configuration.
+
+| Hotkey | Action |
+| --- | --- |
+| `Cmd+Shift+C` | **Recursive Grid Mode** (recommended) |
+| `Cmd+Shift+G` | Grid Mode |
+| `Cmd+Shift+Space` | Hints Mode |
+| `Cmd+Shift+S` | Scroll Mode |
+| `Shift+L` | Left click (in any mode) |
+| `Shift+R` | Right click (in any mode) |
+| `Shift+M` | Middle click (in any mode) |
+| `Escape` | Exit current mode |
+
+<Tip>
+These are just a subset of available actions. See the [Configuration Reference](/concepts/configuration-overview) for all options.
+</Tip>
+
+---
+
+## Try Navigation Modes
+
+### Recursive Grid Mode (Recommended)
+
+**Best for:** Precise navigation to any point on screen. Works everywhere.
+
+<Steps>
+  <Step title="Activate Recursive Grid">
+    Press `Cmd+Shift+C` (or run `neru recursive_grid`)
+    
+    Your screen is divided into a 2×2 grid with labeled cells:
+    ```
+    u | i
+    --|--
+    j | k
+    ```
+  </Step>
+  
+  <Step title="Navigate to target">
+    Press the key corresponding to the cell containing your target:
+    
+    - `u` — upper-left
+    - `i` — upper-right  
+    - `j` — lower-left
+    - `k` — lower-right
+    
+    The grid recursively subdivides the selected cell. Keep pressing keys until you reach your target.
+  </Step>
+  
+  <Step title="Perform action">
+    Once positioned:
+    
+    - `Shift+L` — left click
+    - `Shift+R` — right click
+    - `Shift+M` — middle click
+    - `Escape` — exit mode
+  </Step>
+  
+  <Step title="Additional controls">
+    - `Backspace` — go back one level
+    - `Space` — reset to center (default `reset_key`)
+    - `Escape` — exit mode
+  </Step>
+</Steps>
+
+<CodeGroup>
+```bash CLI Usage
+# Start recursive grid mode
+neru recursive_grid
+
+# Start with pending click action
+neru recursive_grid --action left_click
+```
+
+```toml Configuration
+[recursive_grid]
+enabled = true
+grid_cols = 2
+grid_rows = 2
+keys = "uijk"
+reset_key = " "  # Space
+backspace_key = "Backspace"
+min_size_width = 25
+min_size_height = 25
+```
+</CodeGroup>
+
+<Card title="Learn More" icon="book" href="/guides/recursive-grid">
+Detailed guide to Recursive Grid mode configuration and usage.
+</Card>
+
+---
+
+### Grid Mode
+
+**Best for:** Quick navigation without recursive subdivision.
+
+<Steps>
+  <Step title="Activate Grid Mode">
+    Press `Cmd+Shift+G` (or run `neru grid`)
+    
+    Your screen is divided into labeled cells: `a`, `b`, `c`, etc.
+  </Step>
+  
+  <Step title="Type the label">
+    Type the characters shown on the cell you want to click.
+    
+    As you type:
+    - Matching cells are highlighted
+    - Non-matching cells are hidden (if `hide_unmatched = true`)
+  </Step>
+  
+  <Step title="Perform action">
+    When only one cell remains:
+    
+    - `Shift+L` — left click
+    - `Shift+R` — right click  
+    - `Shift+M` — middle click
+    - `Escape` — exit mode
+  </Step>
+  
+  <Step title="Additional controls">
+    - `Backspace` — delete last character
+    - `Space` — reset input (default `reset_key`)
+    - `Escape` — exit mode
+  </Step>
+</Steps>
+
+<CodeGroup>
+```bash CLI Usage
+# Start grid mode
+neru grid
+
+# Start with pending click action
+neru grid --action left_click
+```
+
+```toml Configuration
+[grid]
+enabled = true
+characters = "abcdefghijklmnpqrstuvwxyz"
+sublayer_keys = "abcdefghijklmnpqrstuvwxyz"
+reset_key = " "
+backspace_key = "Backspace"
+live_match_update = true
+hide_unmatched = true
+```
+</CodeGroup>
+
+<Card title="Learn More" icon="book" href="/guides/grid-mode">
+Detailed guide to Grid mode configuration and usage.
+</Card>
+
+---
+
+### Hints Mode
+
+**Best for:** Accessibility-driven navigation. Requires app accessibility support.
+
+<Steps>
+  <Step title="Activate Hints Mode">
+    Press `Cmd+Shift+Space` (or run `neru hints`)
+    
+    Labels appear on every clickable element.
+  </Step>
+  
+  <Step title="Type the hint">
+    Type the characters shown on the element you want to click.
+    
+    As you type, non-matching hints disappear.
+  </Step>
+  
+  <Step title="Perform action">
+    When only one hint remains:
+    
+    - `Shift+L` — left click
+    - `Shift+R` — right click
+    - `Shift+M` — middle click  
+    - `Escape` — exit mode
+  </Step>
+  
+  <Step title="Additional controls">
+    - `Backspace` — delete last character
+    - `Escape` — exit mode
+  </Step>
+</Steps>
+
+<CodeGroup>
+```bash CLI Usage
+# Start hints mode
+neru hints
+
+# Start with pending click action
+neru hints --action left_click
+```
+
+```toml Configuration
+[hints]
+enabled = true
+hint_characters = "asdfghjkl"
+backspace_key = "Backspace"
+auto_exit_actions = []  # e.g. ["left_click"]
+max_depth = 50
+include_menubar_hints = false
+include_dock_hints = false
+```
+</CodeGroup>
+
+<Warning>
+Hints mode requires apps to expose their accessibility tree. Some apps (like Electron apps) may need additional configuration. See [Troubleshooting](https://github.com/y3owk1n/neru/blob/main/docs/TROUBLESHOOTING.md) for app-specific fixes.
+</Warning>
+
+<Card title="Learn More" icon="book" href="/guides/hints-mode">
+Detailed guide to Hints mode configuration and usage.
+</Card>
+
+---
+
+### Scroll Mode
+
+**Best for:** Vim-style scrolling anywhere on screen.
+
+<Steps>
+  <Step title="Activate Scroll Mode">
+    Press `Cmd+Shift+S` (or run `neru scroll`)
+  </Step>
+  
+  <Step title="Use Vim motions">
+    | Key | Action |
+    | --- | --- |
+    | `j` or `Down` | Scroll down |
+    | `k` or `Up` | Scroll up |
+    | `h` or `Left` | Scroll left |
+    | `l` or `Right` | Scroll right |
+    | `gg` or `Cmd+Up` | Jump to top |
+    | `Shift+G` or `Cmd+Down` | Jump to bottom |
+    | `Ctrl+D` or `PageDown` | Half-page down |
+    | `Ctrl+U` or `PageUp` | Half-page up |
+  </Step>
+  
+  <Step title="Exit scroll mode">
+    Press `Escape`
+  </Step>
+</Steps>
+
+<CodeGroup>
+```bash CLI Usage
+# Start scroll mode
+neru scroll
+```
+
+```toml Configuration
+[scroll]
+scroll_step = 50         # pixels per j/k press
+scroll_step_half = 500   # pixels for Ctrl+D/U
+scroll_step_full = 1000000  # pixels for gg/G
+
+[scroll.key_bindings]
+scroll_up = ["k", "Up"]
+scroll_down = ["j", "Down"]
+scroll_left = ["h", "Left"]
+scroll_right = ["l", "Right"]
+go_top = ["gg", "Cmd+Up"]
+go_bottom = ["Shift+G", "Cmd+Down"]
+page_up = ["Ctrl+U", "PageUp"]
+page_down = ["Ctrl+D", "PageDown"]
+```
+</CodeGroup>
+
+<Card title="Learn More" icon="book" href="/guides/scroll-mode">
+Detailed guide to Scroll mode configuration and usage.
+</Card>
+
+---
+
+## Direct Mouse Actions
+
+You can trigger mouse actions **in any navigation mode** without switching modes.
+
+### Available Actions
+
+| Action | Default Key | Description |
+| --- | --- | --- |
+| Left Click | `Shift+L` | Click at current position |
+| Right Click | `Shift+R` | Right-click at current position |
+| Middle Click | `Shift+M` | Middle-click at current position |
+| Mouse Down | `Shift+I` | Press and hold mouse button |
+| Mouse Up | `Shift+U` | Release mouse button |
+| Move Up | `Up` | Move cursor up |
+| Move Down | `Down` | Move cursor down |
+| Move Left | `Left` | Move cursor left |
+| Move Right | `Right` | Move cursor right |
+
+### CLI Examples
+
+```bash
+# Left click at current position
+neru action left_click
+
+# Move mouse to absolute position
+neru action move_mouse --x=500 --y=300
+
+# Move mouse to center of screen
+neru action move_mouse --center
+
+# Move mouse with offset from center
+neru action move_mouse --center --x=100 --y=50
+
+# Move mouse relatively
+neru action move_mouse_relative --dx=10 --dy=-20
+```
+
+<Card title="Learn More" icon="book" href="/guides/mouse-actions">
+Detailed guide to mouse actions and configuration.
+</Card>
+
+---
+
+## Configure Auto-Start
+
+To launch Neru automatically on login:
+
+```bash
+neru services install
+```
+
+<Note>
+If you installed Neru via nix-darwin or home-manager, auto-start is already configured.
+</Note>
+
+Manage the service:
+
+```bash
+# Check service status
+neru services status
+
+# Start service
+neru services start
+
+# Stop service
+neru services stop
+
+# Restart service
+neru services restart
+
+# Uninstall service
+neru services uninstall
+```
+
+---
+
+## Customize Configuration
+
+Neru is configured via a single TOML file at `~/.config/neru/config.toml`.
+
+<Steps>
+  <Step title="Copy default configuration">
+    ```bash
+    mkdir -p ~/.config/neru
+    curl -o ~/.config/neru/config.toml \
+      https://raw.githubusercontent.com/y3owk1n/neru/main/configs/default-config.toml
+    ```
+  </Step>
+  
+  <Step title="Edit configuration">
+    ```bash
+    vim ~/.config/neru/config.toml
+    ```
+  </Step>
+  
+  <Step title="Reload configuration">
+    Configuration changes are applied on the next mode activation, or restart Neru:
+    
+    ```bash
+    neru services restart
+    # or
+    neru stop && neru launch
+    ```
+  </Step>
+</Steps>
+
+### Example Customizations
+
+<CodeGroup>
+```toml Change Hotkeys
+[hotkeys]
+"Cmd+;" = "hints"
+"Cmd+'" = "recursive_grid"
+"Cmd+Shift+J" = "scroll"
+```
+
+```toml Exclude Apps
+[general]
+excluded_apps = [
+  "com.apple.Terminal",
+  "com.googlecode.iterm2",
+  "com.github.wez.wezterm"
+]
+```
+
+```toml Customize Grid Colors
+[grid.ui]
+background_color_light = "#9900B4D8"
+background_color_dark = "#99003554"
+text_color_light = "#FF003554"
+text_color_dark = "#FFB3E8F5"
+```
+
+```toml Customize Recursive Grid
+[recursive_grid]
+grid_cols = 3
+grid_rows = 3
+keys = "qweasdzxc"  # 3x3 = 9 keys
+min_size_width = 50
+min_size_height = 50
+```
+</CodeGroup>
+
+<Card title="Full Configuration Reference" icon="gear" href="/concepts/configuration-overview">
+Explore all available options and examples.
+</Card>
+
+---
+
+## Health Check
+
+Run the doctor command to verify your Neru installation:
+
+```bash
+neru doctor
+```
+
+This checks:
+- Accessibility permissions
+- Configuration validity
+- IPC server status
+- System compatibility
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Navigation Modes" icon="compass" href="/concepts/navigation-modes">
+    Deep dive into each navigation mode
+  </Card>
+  
+  <Card title="Configuration" icon="gear" href="/concepts/configuration-overview">
+    Customize every aspect of Neru
+  </Card>
+  
+  <Card title="CLI Reference" icon="terminal" href="/guides/cli-usage">
+    Full command-line interface documentation
+  </Card>
+  
+  <Card title="Troubleshooting" icon="life-ring" href="https://github.com/y3owk1n/neru/blob/main/docs/TROUBLESHOOTING.md">
+    Common issues and app-specific fixes
+  </Card>
+</CardGroup>
+
+---
+
+## Getting Help
+
+If you run into issues:
+
+1. Check the [Troubleshooting Guide](https://github.com/y3owk1n/neru/blob/main/docs/TROUBLESHOOTING.md)
+2. Run `neru doctor` to diagnose issues
+3. Search [GitHub Discussions](https://github.com/y3owk1n/neru/discussions)
+4. Open an [issue](https://github.com/y3owk1n/neru/issues) if you found a bug
+
+<Tip>
+**Want to see how others use Neru?** Check out [user configs](https://github.com/y3owk1n/neru/discussions/542) and [how the author uses Neru](https://github.com/y3owk1n/neru/blob/main/HOW-I-USE-NERU.md).
+</Tip>

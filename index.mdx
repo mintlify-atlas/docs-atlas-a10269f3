@@ -1,97 +1,153 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Neru"
+description: "Mouse-free OS navigation. Free, open-source, endlessly customisable."
 ---
 
-## Setting up
+<div style={{
+  background: 'linear-gradient(135deg, #94cb04 0%, #545454 100%)',
+  padding: '3rem 2rem',
+  borderRadius: '8px',
+  marginBottom: '2rem',
+  color: 'white'
+}}>
+  <h1 style={{
+    fontSize: '3rem',
+    fontWeight: '700',
+    marginBottom: '1rem',
+    color: 'white'
+  }}>練る · Neru</h1>
+  <p style={{
+    fontSize: '1.25rem',
+    marginBottom: '2rem',
+    color: 'white',
+    opacity: 0.95
+  }}>
+    Navigate, click, and scroll anywhere on your screen using only your keyboard. No mouse. No trackpad. No limits.
+  </p>
+  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+    <a href="/quickstart" style={{
+      background: 'white',
+      color: '#1a1a1a',
+      padding: '0.75rem 1.5rem',
+      borderRadius: '6px',
+      textDecoration: 'none',
+      fontWeight: '600',
+      display: 'inline-block'
+    }}>Get Started →</a>
+    <a href="https://github.com/y3owk1n/neru" style={{
+      background: 'transparent',
+      color: 'white',
+      padding: '0.75rem 1.5rem',
+      borderRadius: '6px',
+      textDecoration: 'none',
+      fontWeight: '600',
+      border: '2px solid white',
+      display: 'inline-block'
+    }}>View on GitHub</a>
+  </div>
+</div>
 
-Get your documentation site up and running in minutes.
+## What is Neru?
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
+**Neru (練る)** — Japanese for _"to refine and master through practice"_ — is a keyboard-driven navigation tool for macOS that lets you control your entire desktop without touching your mouse or trackpad.
 
-## Make it yours
+It's the free, open-source alternative to Homerow, Mouseless, and Wooshy — with zero paywalls, zero subscriptions, and everything configurable down to the last pixel.
 
-Design a docs site that looks great and empowers your users.
+## Key Features
 
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Recursive Grid Mode" icon="grid" href="/concepts/navigation-modes">
+    Drill into any region with coordinate-based navigation. Works everywhere, no exceptions.
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Hints Mode" icon="hand-pointer" href="/guides/hints-mode">
+    Accessibility-driven labels on every clickable element for instant navigation.
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Vim-Style Scrolling" icon="scroll" href="/guides/scroll-mode">
+    j/k/gg/G navigation with full remapping support for comfortable scrolling.
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="Direct Mouse Actions" icon="mouse-pointer" href="/guides/mouse-actions">
+    Left/right/middle click, drag & drop via direct action keybindings.
   </Card>
-</Columns>
+  <Card title="IPC-Based CLI" icon="terminal" href="/guides/cli-usage">
+    Control Neru programmatically via Unix sockets for automation workflows.
+  </Card>
+  <Card title="TOML Configuration" icon="file-code" href="/concepts/configuration-overview">
+    Version-controlled, shareable configuration files for reproducible setups.
+  </Card>
+</CardGroup>
 
-## Create beautiful pages
+## Quick Start
 
-Everything you need to create world-class documentation.
+<Steps>
+  <Step title="Install Neru">
+    <CodeGroup>
+    ```bash Homebrew
+    brew tap y3owk1n/tap
+    brew install --cask y3owk1n/tap/neru
+    ```
+    ```bash Nix
+    # inputs.neru.url = "github:y3owk1n/neru";
+    # See installation guide for nix-darwin / home-manager setup
+    ```
+    ```bash From Source
+    git clone https://github.com/y3owk1n/neru.git
+    cd neru && just release
+    ```
+    </CodeGroup>
+  </Step>
+  <Step title="Grant Accessibility Permission">
+    Open **System Settings → Privacy & Security → Accessibility** and enable Neru.
+  </Step>
+  <Step title="Launch and Try">
+    ```bash
+    # Start Neru
+    open -a Neru
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+    # Try the default hotkeys
+    # Cmd+Shift+C - Recursive grid mode
+    # Cmd+Shift+Space - Hints mode
+    # Cmd+Shift+G - Grid mode
+    # Cmd+Shift+S - Scroll mode
+    ```
+  </Step>
+</Steps>
 
-## Need inspiration?
+## Navigation Modes
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+Neru provides three powerful navigation modes that work together:
+
+<CardGroup cols={3}>
+  <Card title="Recursive Grid" icon="grid-2" href="/guides/recursive-grid">
+    Divide your screen into a coordinate grid and drill into any region with u/i/j/k until you land exactly where you want.
+  </Card>
+  <Card title="Grid Mode" icon="table-cells" href="/guides/grid-mode">
+    Coordinate-based navigation without recursive subdivision, great for quick coarse navigation.
+  </Card>
+  <Card title="Hints Mode" icon="tags" href="/guides/hints-mode">
+    Labels appear on every clickable element for instant accessibility-driven navigation.
+  </Card>
+</CardGroup>
+
+## Platform Support
+
+- **macOS**: ✅ Fully supported and stable
+- **Linux & Windows**: 🔲 Infrastructure ready, requires community contribution
+
+See the [cross-platform guide](/advanced/cross-platform) for porting instructions.
+
+## Learn More
+
+<CardGroup cols={2}>
+  <Card title="Installation Guide" icon="download" href="/installation">
+    Detailed installation instructions for Homebrew, Nix, and building from source.
+  </Card>
+  <Card title="Configuration" icon="gear" href="/concepts/configuration-overview">
+    Learn how to customize hotkeys, colors, and behaviors with TOML configuration.
+  </Card>
+  <Card title="CLI Usage" icon="terminal" href="/guides/cli-usage">
+    Explore the command-line interface for automation and scripting.
+  </Card>
+  <Card title="Contributing" icon="code-branch" href="/advanced/contributing">
+    Help improve Neru or add support for new platforms.
+  </Card>
+</CardGroup>

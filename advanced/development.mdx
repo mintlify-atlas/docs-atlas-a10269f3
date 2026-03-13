@@ -1,0 +1,711 @@
+---
+title: 'Development Guide'
+description: 'Complete guide to building, testing, and developing Neru'
+---
+
+## Quick Start
+
+Get Neru running locally in 5 minutes:
+
+```bash
+# 1. Clone and setup
+git clone https://github.com/y3owk1n/neru.git
+cd neru
+
+# 2. Set up development environment
+## Option A: Using Devbox (Recommended)
+devbox shell
+
+## Option B: Manual installation
+brew install just golangci-lint
+
+# 3. Build and run
+just build
+./bin/neru launch
+
+# 4. Test it works
+neru hints  # Should show hint overlays
+```
+
+## Prerequisites
+
+### Required Tools
+
+<Steps>
+  <Step title="Go 1.26+">
+    [Install Go](https://golang.org/dl/)
+    
+    ```bash
+    go version  # Should be 1.26+
+    ```
+  </Step>
+  
+  <Step title="Xcode Command Line Tools (macOS)">
+    Required for CGo and Objective-C bridge:
+    
+    ```bash
+    xcode-select --install
+    ```
+  </Step>
+  
+  <Step title="Just Command Runner">
+    [Install Just](https://github.com/casey/just)
+    
+    ```bash
+    brew install just
+    ```
+  </Step>
+  
+  <Step title="golangci-lint">
+    [Install golangci-lint](https://golangci-lint.run/usage/install/)
+    
+    ```bash
+    brew install golangci-lint
+    ```
+  </Step>
+</Steps>
+
+### Development Environment Options
+
+<Tabs>
+  <Tab title="Devbox (Recommended)">
+    [Devbox](https://www.jetify.com/devbox) provides an isolated development environment with all tools pre-configured.
+    
+    ```bash
+    # Install Devbox
+    curl -fsSL https://get.jetify.com/devbox | bash
+    
+    # Enter the development shell
+    devbox shell
+    
+    # Or use direnv for automatic activation
+    brew install direnv
+    # Add to shell: eval "$(direnv hook bash)" (or zsh/fish)
+    ```
+    
+    Devbox automatically installs:
+    - Go 1.26.0
+    - gopls (Go language server)
+    - gotools, gofumpt, golines (formatting)
+    - golangci-lint (linter)
+    - just (command runner)
+    - clang-tools (C/C++ tools for CGo)
+  </Tab>
+  
+  <Tab title="Manual Installation">
+    Install essential tools manually:
+    
+    ```bash
+    brew install go just golangci-lint llvm
+    ```
+    
+    **Tool descriptions**:
+    - `go` - Go compiler and toolchain (1.26+ required)
+    - `just` - Command runner for build scripts
+    - `golangci-lint` - Go linter and formatter
+    - `llvm` - LLVM tools including clang-format for CGo code
+    
+    **Optional tools** (install via `go install`):
+    ```bash
+    go install golang.org/x/tools/gopls@latest
+    go install mvdan.cc/gofumpt@latest
+    go install github.com/segmentio/golines@latest
+    ```
+  </Tab>
+</Tabs>
+
+## Build System
+
+Neru uses [Just](https://github.com/casey/just) as a command runner (alternative to Make).
+
+### Common Commands
+
+| Task   | Command                 | Description                        |
+| ------ | ----------------------- | ---------------------------------- |
+| Build  | `just build`            | Compile the application            |
+| Test   | `just test`             | Run unit tests                     |
+| Test   | `just test-integration` | Run integration tests              |
+| Test   | `just test-race`        | Run all tests with race detection  |
+| Lint   | `just lint`             | Run linters                        |
+| Format | `just fmt`              | Format code                        |
+| Run    | `just run`              | Build and run the application      |
+| Clean  | `just clean`            | Remove build artifacts             |
+
+### Build Commands
+
+<Tabs>
+  <Tab title="Development Build">
+    ```bash
+    just build
+    ```
+    
+    Compiles the binary with debug symbols and version info from git tags.
+    
+    **Output**: `bin/neru`
+  </Tab>
+  
+  <Tab title="Release Build">
+    ```bash
+    just release
+    ```
+    
+    Optimized build with stripped symbols:
+    - Uses `-ldflags="-s -w"` to strip debug info
+    - Uses `-trimpath` to remove filesystem paths
+    - Injects version, commit, and build date
+    
+    **Output**: `bin/neru`
+  </Tab>
+  
+  <Tab title="macOS App Bundle">
+    ```bash
+    just bundle
+    ```
+    
+    Creates a macOS `.app` bundle:
+    - Builds release binary
+    - Creates `build/Neru.app` structure
+    - Copies icon and Info.plist
+    - Code signs the bundle
+    
+    **Output**: `build/Neru.app`
+  </Tab>
+  
+  <Tab title="Custom Version">
+    ```bash
+    just build-version v1.0.0
+    ```
+    
+    Builds with a custom version string (useful for testing).
+    
+    **Output**: `bin/neru`
+  </Tab>
+</Tabs>
+
+### Manual Build
+
+Without Just:
+
+```bash
+# Basic build
+go build -o bin/neru ./cmd/neru
+
+# With version info
+VERSION=$(git describe --tags --always --dirty)
+go build \
+  -ldflags="-s -w -X github.com/y3owk1n/neru/internal/cli.Version=$VERSION" \
+  -o bin/neru \
+  ./cmd/neru
+
+# For release (optimized)
+go build \
+  -ldflags="-s -w -X github.com/y3owk1n/neru/internal/cli.Version=$VERSION" \
+  -trimpath \
+  -o bin/neru \
+  ./cmd/neru
+```
+
+### Build Flags Explained
+
+<Accordion title='Build flags: -ldflags="-s -w"'>
+  - `-s` - Strip debug info (smaller binary)
+  - `-w` - Strip symbol table (smaller binary)
+</Accordion>
+
+<Accordion title="-trimpath">
+  Remove file system paths from binary (reproducible builds, security)
+</Accordion>
+
+<Accordion title="-X pkg.Var=value">
+  Set string variable at build time (used for version injection)
+</Accordion>
+
+## Testing
+
+### Test Organization
+
+Neru separates tests into **unit tests** and **integration tests**:
+
+| Test Type             | File Pattern              | Build Tag     | Purpose                               |
+| --------------------- | ------------------------- | ------------- | ------------------------------------- |
+| **Unit Tests**        | `*_test.go`               | —             | Business logic with mocks             |
+| **Integration Tests** | `*_integration_*_test.go` | `integration` | Real system interactions              |
+
+<Info>
+  **Unit tests** are fast and have no system dependencies. **Integration tests** require real OS APIs (accessibility, IPC, etc.).
+</Info>
+
+### File Naming Convention
+
+```
+package_test.go                          # Unit tests (logic, mocks)
+package_integration_darwin_test.go       # macOS integration tests
+package_integration_linux_test.go        # Linux integration tests
+```
+
+**Example integration test file**:
+```go
+//go:build integration && darwin
+
+package accessibility
+
+import "testing"
+
+func TestRealAccessibilityAPI(t *testing.T) {
+    // Test using real macOS Accessibility API
+}
+```
+
+### Running Tests
+
+<Tabs>
+  <Tab title="Unit Tests">
+    ```bash
+    just test
+    # or
+    go test -v ./...
+    ```
+    
+    Runs all unit tests (fast, no system dependencies).
+  </Tab>
+  
+  <Tab title="Integration Tests">
+    ```bash
+    just test-integration
+    # or
+    go test -tags=integration -v ./...
+    ```
+    
+    Runs integration tests (requires real OS APIs).
+  </Tab>
+  
+  <Tab title="All Tests">
+    ```bash
+    just test-all
+    ```
+    
+    Runs both unit and integration tests.
+  </Tab>
+  
+  <Tab title="Race Detection">
+    ```bash
+    just test-race
+    # or
+    go test -race -v ./...
+    ```
+    
+    Runs tests with Go's race detector (slower but catches concurrency bugs).
+  </Tab>
+</Tabs>
+
+### Test Coverage
+
+```bash
+# Generate coverage report
+go test -coverprofile=coverage.out ./...
+go tool cover -html=coverage.out
+
+# View coverage by package
+go test -cover ./...
+```
+
+### Testing Best Practices
+
+<Steps>
+  <Step title="Use Table-Driven Tests">
+    ```go
+    func TestHintGeneration(t *testing.T) {
+        tests := []struct {
+            name     string
+            input    []element.Element
+            expected []string
+        }{
+            {"single element", []element.Element{{...}}, []string{"a"}},
+            {"multiple elements", []element.Element{{...}, {...}}, []string{"a", "b"}},
+        }
+        
+        for _, tt := range tests {
+            t.Run(tt.name, func(t *testing.T) {
+                // Test logic
+            })
+        }
+    }
+    ```
+  </Step>
+  
+  <Step title="Use Mocks for Unit Tests">
+    Use the mock implementations in `internal/core/ports/mocks/` for testing:
+    
+    ```go
+    import "github.com/y3owk1n/neru/internal/core/ports/mocks"
+    
+    func TestServiceWithMocks(t *testing.T) {
+        mockAccessibility := mocks.NewMockAccessibilityPort()
+        mockOverlay := mocks.NewMockOverlayPort()
+        
+        service := NewService(mockAccessibility, mockOverlay)
+        // Test service logic
+    }
+    ```
+  </Step>
+  
+  <Step title="Use Integration Tests for Platform APIs">
+    Integration tests should test real platform interactions:
+    
+    ```go
+    //go:build integration && darwin
+    
+    func TestRealAccessibility(t *testing.T) {
+        adapter := accessibility.NewAdapter(...)
+        elements, err := adapter.ClickableElements(context.Background(), filter)
+        require.NoError(t, err)
+        assert.NotEmpty(t, elements)
+    }
+    ```
+  </Step>
+</Steps>
+
+## Code Organization
+
+### Architectural Layers
+
+Neru follows a clean architecture with clear separation:
+
+<Steps>
+  <Step title="Domain Layer">
+    **Location**: `internal/core/domain/`
+    
+    Pure business logic with no external dependencies:
+    - `hint/` - Hint generation algorithms
+    - `grid/` - Grid calculation logic
+    - `element/` - UI element representation
+    - `action/` - Action type definitions
+  </Step>
+  
+  <Step title="Ports Layer">
+    **Location**: `internal/core/ports/`
+    
+    Interface contracts between layers:
+    - `accessibility.go` - UI element access
+    - `overlay.go` - Overlay rendering
+    - `system.go` - System operations
+    - `config.go` - Configuration
+  </Step>
+  
+  <Step title="Application Layer">
+    **Location**: `internal/app/`
+    
+    Use case orchestration:
+    - `services/` - Business logic coordination
+    - `modes/` - Navigation mode implementations
+    - `components/` - UI component management
+    - `app.go` - Application lifecycle
+  </Step>
+  
+  <Step title="Infrastructure Layer">
+    **Location**: `internal/core/infra/`
+    
+    Concrete implementations:
+    - `accessibility/` - Accessibility adapter
+    - `overlay/` - Overlay adapter
+    - `hotkeys/` - Hotkey management
+    - `eventtap/` - Event interception
+    - `platform/` - OS-specific implementations
+  </Step>
+</Steps>
+
+### Adding New Features
+
+<Tabs>
+  <Tab title="New Mode">
+    To add a new navigation mode:
+    
+    1. **Define domain mode**: Add to `internal/core/domain/modes.go`
+    2. **Create implementation**: Implement `Mode` interface in `internal/app/modes/`
+    3. **Add CLI command**: Create command in `internal/cli/`
+    4. **Update IPC**: Add handler in `internal/app/ipc_controller.go`
+    5. **Register mode**: Add to Handler's mode map in `internal/app/modes/handler.go`
+    6. **Add tests**: Create unit and integration tests
+    7. **Update config**: Add hotkey defaults in `internal/config/config.go`
+  </Tab>
+  
+  <Tab title="New Action">
+    To add a new action type:
+    
+    1. **Define action**: Add to `internal/core/domain/action/types.go`
+    2. **Implement logic**: Add to `internal/app/services/action_service.go`
+    3. **Add handling**: Update `internal/app/guides/mouse-actions.go`
+    4. **Update config**: Add to action key bindings
+    5. **Add tests**: Test action execution
+  </Tab>
+  
+  <Tab title="New Config Option">
+    To add configuration options:
+    
+    1. **Add fields**: Update structs in `internal/config/config.go`
+    2. **Set defaults**: Update `commonDefaultConfig()` and platform-specific `config_<os>.go`
+    3. **Add validation**: Update `Validate*()` methods
+    4. **Update examples**: Update `configs/` example files
+    5. **Document**: Update configuration documentation
+  </Tab>
+  
+  <Tab title="Platform Feature">
+    To add a platform-specific feature:
+    
+    1. **Add port method**: Update interface in `internal/core/ports/`
+    2. **Implement for macOS**: Add to `internal/core/infra/platform/darwin/`
+    3. **Add stubs**: Add `CodeNotSupported` stubs for Linux/Windows
+    4. **Add tests**: Unit and integration tests
+    5. **Update docs**: Document in cross-platform guide
+  </Tab>
+</Tabs>
+
+## Debugging
+
+### Debug Logging
+
+Enable debug logging in your config:
+
+```toml
+[logging]
+log_level = "debug"
+```
+
+### View Logs
+
+<Tabs>
+  <Tab title="macOS">
+    ```bash
+    tail -f ~/Library/Logs/neru/app.log
+    ```
+  </Tab>
+  
+  <Tab title="Linux">
+    ```bash
+    tail -f ~/.local/state/neru/log/app.log
+    ```
+  </Tab>
+  
+  <Tab title="Windows">
+    ```powershell
+    Get-Content -Wait %LOCALAPPDATA%\neru\log\app.log
+    ```
+  </Tab>
+</Tabs>
+
+### Using Delve Debugger
+
+```bash
+# Install Delve
+go install github.com/go-delve/delve/cmd/dlv@latest
+
+# Debug the application
+dlv debug ./cmd/neru
+
+# Set breakpoints and run
+(dlv) break internal/app/modes/handler.go:123
+(dlv) continue
+```
+
+### Debug CGo and Objective-C
+
+```bash
+# Build with debug symbols
+CGO_CFLAGS="-g" go build -o bin/neru ./cmd/neru
+
+# Debug with lldb (macOS)
+lldb ./bin/neru
+(lldb) breakpoint set --file bridge.go --line 45
+(lldb) run
+```
+
+## Working with Objective-C Bridge
+
+The CGo bridge connects Go to macOS native APIs.
+
+### Bridge Structure
+
+**Location**: `internal/core/infra/platform/darwin/`
+
+**Key files**:
+- `bridge.go` - Go-side interface
+- `accessibility.go` - AXUIElement wrappers
+- `screen.go` - Screen and cursor operations
+- `mouse.go` - Mouse event synthesis
+
+### CGo Build Tags
+
+<Warning>
+  All darwin platform files must use `//go:build darwin` tag:
+  
+  ```go
+  //go:build darwin
+  
+  package darwin
+  ```
+</Warning>
+
+### Calling Objective-C from Go
+
+```go
+// bridge.go
+/*
+#cgo CFLAGS: -x objective-c
+#cgo LDFLAGS: -framework ApplicationServices -framework Cocoa
+#include "bridge.h"
+*/
+import "C"
+
+func GetScreenBounds() image.Rectangle {
+    rect := C.GetMainScreenBounds()
+    return image.Rectangle{
+        Min: image.Point{X: int(rect.x), Y: int(rect.y)},
+        Max: image.Point{X: int(rect.x + rect.width), Y: int(rect.y + rect.height)},
+    }
+}
+```
+
+### Memory Management
+
+<Accordion title="String Handling">
+  Use `C.CString()` and `C.free()` for string conversions:
+  
+  ```go
+  cstr := C.CString(goString)
+  defer C.free(unsafe.Pointer(cstr))
+  C.SomeFunction(cstr)
+  ```
+</Accordion>
+
+<Accordion title="Object Lifecycle">
+  Use `CFRetain`/`CFRelease` for Core Foundation objects:
+  
+  ```objective-c
+  AXUIElementRef element = AXUIElementCreateApplication(pid);
+  // Use element
+  CFRelease(element);
+  ```
+</Accordion>
+
+## Pre-commit Checklist
+
+Before committing code:
+
+<Steps>
+  <Step title="Format Code">
+    ```bash
+    just fmt
+    ```
+  </Step>
+  
+  <Step title="Run Linters">
+    ```bash
+    just lint
+    ```
+  </Step>
+  
+  <Step title="Run Tests">
+    ```bash
+    just test
+    ```
+  </Step>
+  
+  <Step title="Verify Build">
+    ```bash
+    just build
+    ```
+  </Step>
+  
+  <Step title="Update Documentation">
+    Update docs if you changed APIs or behavior.
+  </Step>
+</Steps>
+
+## Development Tips
+
+### Quick Iteration
+
+```bash
+# Build and run
+just build && ./bin/neru launch
+
+# Watch for changes (requires entr)
+ls **/*.go | entr -r sh -c 'just build && ./bin/neru launch'
+```
+
+### Code Quality Tools
+
+```bash
+# Format code
+just fmt
+
+# Run linters
+just lint
+
+# Run vet
+go vet ./...
+
+# Check for security issues
+gosec ./...
+```
+
+### Dependency Management
+
+```bash
+# Add dependency
+go get github.com/example/package
+
+# Update dependencies
+go get -u ./...
+
+# Clean up modules
+go mod tidy
+
+# Verify dependencies
+go mod verify
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Build fails with 'cgo: C compiler not found'">
+    Install Xcode Command Line Tools:
+    ```bash
+    xcode-select --install
+    ```
+  </Accordion>
+  
+  <Accordion title="Tests fail with permission errors">
+    Grant Accessibility permissions to your terminal:
+    - System Settings → Privacy & Security → Accessibility
+    - Add Terminal.app or your IDE
+  </Accordion>
+  
+  <Accordion title="Linter errors about depguard">
+    Ensure you're not importing `internal/core/infra/platform/darwin` from non-darwin files. Use the platform factory pattern instead.
+  </Accordion>
+  
+  <Accordion title="Integration tests timeout">
+    Integration tests require real OS APIs and may take longer. Increase timeout:
+    ```bash
+    go test -tags=integration -timeout=5m ./...
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Related Documentation
+
+<CardGroup cols={2}>
+  <Card title="System Architecture" icon="sitemap" href="/advanced/architecture">
+    Understand Neru's architecture
+  </Card>
+  <Card title="Cross-Platform Guide" icon="globe" href="/advanced/cross-platform">
+    Learn about platform support
+  </Card>
+  <Card title="Contributing" icon="hand" href="/advanced/contributing">
+    Contribute to Neru
+  </Card>
+  <Card title="Coding Standards" icon="file-code" href="https://github.com/y3owk1n/neru/blob/main/docs/CODING_STANDARDS.md">
+    Follow coding conventions
+  </Card>
+</CardGroup>

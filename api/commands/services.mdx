@@ -1,0 +1,608 @@
+---
+title: Services Commands
+description: Manage Neru as a system service for automatic startup
+---
+
+Services commands manage Neru as a system service for automatic startup on login. The implementation varies by platform.
+
+## Overview
+
+All service commands are subcommands of `neru services`:
+
+```bash
+neru services <subcommand> [flags]
+```
+
+---
+
+## install
+
+Install and load the Neru system service.
+
+### Syntax
+
+```bash
+neru services install [flags]
+```
+
+### Description
+
+Installs the Neru service configuration and loads it to start automatically on login.
+
+### Platform Behavior
+
+#### macOS (launchd)
+
+- Creates `~/Library/LaunchAgents/com.neru.app.plist`
+- Loads the service with `launchctl load`
+- Configures automatic start on login
+- Keeps daemon running with automatic restart on crash
+
+#### Linux (systemd)
+
+<Note>
+  Planned feature. Linux support is not yet implemented.
+</Note>
+
+Will install systemd user service:
+- Location: `~/.config/systemd/user/neru.service`
+- Managed with `systemctl --user`
+
+#### Windows (Task Scheduler)
+
+<Note>
+  Planned feature. Windows support is not yet implemented.
+</Note>
+
+Will create scheduled task for automatic startup.
+
+### Flags
+
+No command-specific flags. Inherits global flags from root command.
+
+### Usage Examples
+
+```bash
+# Install service
+neru services install
+```
+
+### Output
+
+```
+Service installed and loaded successfully
+```
+
+### What Gets Installed
+
+#### macOS LaunchAgent Plist
+
+The installed plist file configures:
+
+- **Label:** `com.neru.app`
+- **Program:** Path to `neru` executable
+- **Arguments:** `["launch"]`
+- **RunAtLoad:** `true` (starts on login)
+- **KeepAlive:** `true` (restarts on crash)
+- **StandardOutPath:** Log file path
+- **StandardErrorPath:** Error log file path
+
+### Prerequisites
+
+- Neru must be installed and in PATH
+- Write permissions to service directory
+
+### Post-Installation
+
+After installation:
+
+1. Service starts immediately
+2. Service starts automatically on next login
+3. Daemon restarts automatically if it crashes
+4. Check status with `neru services status`
+
+### Related Commands
+
+- [status](#status) - Check service status
+- [uninstall](#uninstall) - Remove service
+- [start](#start) - Start service manually
+
+---
+
+## uninstall
+
+Unload and remove the Neru system service.
+
+### Syntax
+
+```bash
+neru services uninstall [flags]
+```
+
+### Description
+
+Unloads the running service and removes its configuration file.
+
+### Platform Behavior
+
+#### macOS (launchd)
+
+- Unloads service with `launchctl unload`
+- Removes `~/Library/LaunchAgents/com.neru.app.plist`
+- Stops daemon if running
+
+#### Linux/Windows
+
+<Note>
+  Not yet implemented. Returns `CodeNotSupported` error.
+</Note>
+
+### Flags
+
+No command-specific flags.
+
+### Usage Examples
+
+```bash
+# Uninstall service
+neru services uninstall
+```
+
+### Output
+
+```
+Service uninstalled successfully
+```
+
+### Behavior
+
+1. Stops running service (if active)
+2. Unloads from system service manager
+3. Removes configuration file
+4. Service will not start on next login
+
+### Post-Uninstallation
+
+- Daemon stops if it was running
+- No automatic startup on login
+- Manual `neru launch` still works
+- Can reinstall with `neru services install`
+
+### Related Commands
+
+- [install](#install) - Reinstall service
+- [stop](#stop) - Stop without uninstalling
+
+---
+
+## status
+
+Check the status of the Neru system service.
+
+### Syntax
+
+```bash
+neru services status [flags]
+```
+
+### Description
+
+Displays whether the service is loaded and running.
+
+### Platform Behavior
+
+#### macOS (launchd)
+
+Checks service status using `launchctl list`:
+- Whether service is loaded
+- Process ID if running
+- Exit status
+
+#### Linux/Windows
+
+<Note>
+  Not yet implemented. Returns placeholder status.
+</Note>
+
+### Flags
+
+No command-specific flags.
+
+### Usage Examples
+
+```bash
+# Check service status
+neru services status
+```
+
+### Output Examples
+
+<CodeGroup>
+
+```bash Service Running
+Service is loaded and running (PID: 12345)
+```
+
+```bash Service Loaded but Not Running
+Service is loaded but not running
+```
+
+```bash Service Not Installed
+Service is not loaded
+```
+
+</CodeGroup>
+
+### Exit Codes
+
+- **0:** Command executed successfully (not related to service status)
+- Service status is indicated in output text
+
+### Use Cases
+
+- Verify service installation
+- Check if daemon is running via service
+- Troubleshoot startup issues
+- Confirm service configuration
+
+### Related Commands
+
+- [install](#install) - Install service if not loaded
+- [start](#start) - Start service if loaded but not running
+
+---
+
+## start
+
+Start the Neru system service.
+
+### Syntax
+
+```bash
+neru services start [flags]
+```
+
+### Description
+
+Manually starts the installed service.
+
+### Platform Behavior
+
+#### macOS (launchd)
+
+Starts service using `launchctl start com.neru.app`:
+- Service must be installed first
+- Launches daemon via service manager
+
+#### Linux/Windows
+
+<Note>
+  Not yet implemented. Returns `CodeNotSupported` error.
+</Note>
+
+### Flags
+
+No command-specific flags.
+
+### Usage Examples
+
+```bash
+# Start service
+neru services start
+```
+
+### Output
+
+```
+Service started
+```
+
+### Prerequisites
+
+- Service must be installed (`neru services install`)
+- Service must not already be running
+
+### Behavior
+
+- Starts daemon through service manager
+- Daemon runs with service manager supervision
+- Automatic restart on crash (if configured)
+
+### Related Commands
+
+- [stop](#stop) - Stop running service
+- [restart](#restart) - Restart service
+- [status](#status) - Check if service is running
+
+---
+
+## stop
+
+Stop the Neru system service.
+
+### Syntax
+
+```bash
+neru services stop [flags]
+```
+
+### Description
+
+Manually stops the running service.
+
+### Platform Behavior
+
+#### macOS (launchd)
+
+Stops service using `launchctl stop com.neru.app`:
+- Gracefully terminates daemon
+- Service remains installed
+- Can be restarted with `neru services start`
+
+#### Linux/Windows
+
+<Note>
+  Not yet implemented. Returns `CodeNotSupported` error.
+</Note>
+
+### Flags
+
+No command-specific flags.
+
+### Usage Examples
+
+```bash
+# Stop service
+neru services stop
+```
+
+### Output
+
+```
+Service stopped
+```
+
+### Behavior
+
+- Sends termination signal to daemon
+- Daemon performs graceful shutdown
+- Service remains installed
+- Will not restart automatically until manually started or system reboot
+
+### Related Commands
+
+- [start](#start) - Restart stopped service
+- [restart](#restart) - Stop and start in one command
+- [uninstall](#uninstall) - Stop and remove service
+
+---
+
+## restart
+
+Restart the Neru system service.
+
+### Syntax
+
+```bash
+neru services restart [flags]
+```
+
+### Description
+
+Stops and starts the service in a single command.
+
+### Platform Behavior
+
+#### macOS (launchd)
+
+Executes:
+1. `launchctl stop com.neru.app`
+2. `launchctl start com.neru.app`
+
+#### Linux/Windows
+
+<Note>
+  Not yet implemented. Returns `CodeNotSupported` error.
+</Note>
+
+### Flags
+
+No command-specific flags.
+
+### Usage Examples
+
+```bash
+# Restart service
+neru services restart
+```
+
+### Output
+
+```
+Service restarted
+```
+
+### Use Cases
+
+- Apply configuration changes
+- Recover from daemon issues
+- Reload after software update
+
+### Prerequisites
+
+- Service must be installed
+
+### Behavior
+
+- Stops running daemon gracefully
+- Starts new daemon instance
+- Applies current configuration
+- All state is reset
+
+### Related Commands
+
+- [start](#start) - Start service
+- [stop](#stop) - Stop service
+- [config reload](/api/commands/config#reload) - Reload config without restart
+
+---
+
+## Alternative Service Managers
+
+### Nix/NixOS
+
+If you installed Neru via Nix, use Nix service management instead:
+
+```nix
+# home.nix (home-manager)
+{
+  services.neru = {
+    enable = true;
+    # Additional options...
+  };
+}
+```
+
+See the [Nix installation guide](/installation#nix) for details.
+
+### Homebrew
+
+If installed via Homebrew, use Homebrew services:
+
+```bash
+# Start service
+brew services start neru
+
+# Stop service
+brew services stop neru
+
+# Check status
+brew services list | grep neru
+```
+
+---
+
+## Error Handling
+
+### Common Errors
+
+<ResponseField name="CodeNotSupported" type="error">
+  **Message:** `service management not supported on this platform`
+  
+  **Platform:** Linux, Windows
+  
+  **Resolution:** Services are currently only supported on macOS. Manually launch Neru or use platform-specific service managers.
+</ResponseField>
+
+<ResponseField name="Service Already Installed" type="error">
+  **Resolution:** Uninstall first or check status
+  
+  ```bash
+  neru services status
+  neru services uninstall
+  neru services install
+  ```
+</ResponseField>
+
+<ResponseField name="Permission Denied" type="error">
+  **Resolution:** Ensure write permissions to service directory
+  
+  **macOS:** `~/Library/LaunchAgents/` must be writable
+</ResponseField>
+
+<ResponseField name="Service Not Found" type="error">
+  **Resolution:** Install service first
+  
+  ```bash
+  neru services install
+  ```
+</ResponseField>
+
+---
+
+## Technical Details
+
+### macOS launchd
+
+#### Service Label
+
+```
+com.neru.app
+```
+
+#### Plist Location
+
+```
+~/Library/LaunchAgents/com.neru.app.plist
+```
+
+#### Plist Contents
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.neru.app</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/path/to/neru</string>
+        <string>launch</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/path/to/logs/neru.log</string>
+    <key>StandardErrorPath</key>
+    <string>/path/to/logs/neru.err</string>
+</dict>
+</plist>
+```
+
+#### Management Commands
+
+```bash
+# Load service
+launchctl load ~/Library/LaunchAgents/com.neru.app.plist
+
+# Unload service
+launchctl unload ~/Library/LaunchAgents/com.neru.app.plist
+
+# Start service
+launchctl start com.neru.app
+
+# Stop service
+launchctl stop com.neru.app
+
+# Check status
+launchctl list | grep com.neru.app
+```
+
+### Logging
+
+Service logs are written to:
+
+- **macOS:** Specified in plist `StandardOutPath` and `StandardErrorPath`
+- **Default:** `~/Library/Logs/neru/`
+
+View logs:
+
+```bash
+# macOS
+tail -f ~/Library/Logs/neru/app.log
+
+# Console app
+open -a Console ~/Library/Logs/neru/
+```
+
+---
+
+## See Also
+
+- [Daemon Commands](/api/commands/daemon) - Launch daemon manually
+- [Status Commands](/api/commands/status) - Check daemon status
+- [Installation Guide](/installation) - Initial setup
+- [Troubleshooting](/guides/troubleshooting) - Service issues

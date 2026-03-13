@@ -1,0 +1,339 @@
+---
+title: Recursive Grid Configuration
+description: Recursive grid settings, depth control, and per-layer customization
+---
+
+## Overview
+
+Recursive grid divides the screen into cells, narrowing selection with each keypress. It's ideal for extremely precise cursor positioning, large screens where standard grid would have too many cells, and repetitive workflows where muscle memory develops.
+
+## Configuration Section
+
+```toml
+[recursive_grid]
+```
+
+## How It Works
+
+1. Screen divided into N×N cells (default 2×2)
+2. Press a cell key to narrow to that region
+3. Selected region divides again recursively
+4. Continues until cell is small enough (`min_size_width`/`min_size_height`) or max depth reached
+
+## Core Settings
+
+<ParamField path="enabled" type="boolean" default="true">
+  Enable or disable recursive-grid mode globally.
+</ParamField>
+
+<ParamField path="grid_cols" type="integer" default="2">
+  Number of columns in the grid. Valid range: ≥2.
+</ParamField>
+
+<ParamField path="grid_rows" type="integer" default="2">
+  Number of rows in the grid. Valid range: ≥2.
+</ParamField>
+
+<ParamField path="keys" type="string" default='uijk'>
+  Cell selection keys. Must contain exactly `grid_cols × grid_rows` unique ASCII characters.
+  
+  **Default 2×2 layout:**
+  ```
+  u → i     (u=top-left, i=top-right)
+  j → k     (j=bottom-left, k=bottom-right)
+  ```
+  
+  **Examples:**
+  ```toml
+  # 2x2 (default)
+  grid_cols = 2
+  grid_rows = 2
+  keys = "uijk"
+  
+  # 3x3 (9 cells)
+  grid_cols = 3
+  grid_rows = 3
+  keys = "gcrhtnmwv"
+  
+  # 3x2 (non-square)
+  grid_cols = 3
+  grid_rows = 2
+  keys = "gcrhtn"
+  ```
+</ParamField>
+
+<ParamField path="backspace_key" type="string" default='Backspace'>
+  Key for backtracking (going up one recursion level). When empty (`""`), defaults to standard Backspace/Delete key.
+  
+  Must not conflict with `keys` or action key bindings.
+</ParamField>
+
+### Recursion Control
+
+<ParamField path="min_size_width" type="integer" default="25">
+  Minimum cell width in pixels before stopping subdivision. Valid range: ≥10.
+</ParamField>
+
+<ParamField path="min_size_height" type="integer" default="25">
+  Minimum cell height in pixels before stopping subdivision. Valid range: ≥10.
+</ParamField>
+
+<ParamField path="max_depth" type="integer" default="10">
+  Maximum recursion levels. Prevents infinite subdivision. Valid range: 1–20.
+</ParamField>
+
+### Control Keys
+
+<ParamField path="reset_key" type="string" default=' '>
+  Key to reset to initial center position. Default is space.
+  
+  **Valid formats:** single character, named key, or modifier combo.
+</ParamField>
+
+<ParamField path="mode_exit_keys" type="array[string]" default="[]">
+  Additional keys that exit recursive-grid mode (merged with `general.mode_exit_keys`). Must not conflict with `keys`, `reset_key`, or `backspace_key`.
+</ParamField>
+
+<ParamField path="auto_exit_actions" type="array[string]" default="[]">
+  Actions that cause recursive-grid mode to exit automatically after execution.
+  
+  **Example:**
+  ```toml
+  auto_exit_actions = ["left_click", "right_click"]
+  ```
+</ParamField>
+
+## Per-Depth Layers
+
+<Accordion title="Advanced: Per-Depth Layer Configuration">
+  Override grid dimensions and keys at specific recursion depths. Depths without an entry use the top-level defaults.
+  
+  ```toml
+  [[recursive_grid.layers]]
+  ```
+  
+  <ParamField path="layers" type="array[object]" default="[]">
+    Array of layer configurations for specific depths.
+    
+    **Fields:**
+    - `depth` (integer, required): 0-indexed recursion depth
+    - `grid_cols` (integer, required): Columns for this depth
+    - `grid_rows` (integer, required): Rows for this depth
+    - `keys` (string, required): Keys for this depth (must be `grid_cols × grid_rows` chars)
+    
+    **Example:**
+    ```toml
+    [recursive_grid]
+    grid_cols = 2
+    grid_rows = 2
+    keys = "uijk"
+    
+    # Depth 0: wide 4×2 grid
+    [[recursive_grid.layers]]
+    depth = 0
+    grid_cols = 4
+    grid_rows = 2
+    keys = "qwerasdf"
+    
+    # Depth 1: 3×3 grid
+    [[recursive_grid.layers]]
+    depth = 1
+    grid_cols = 3
+    grid_rows = 3
+    keys = "qweasdzxc"
+    
+    # Depth 2+: falls back to 2×2 / "uijk" defaults
+    ```
+  </ParamField>
+  
+  <Note>
+    Depths are 0-indexed. You don't have to start with depth 0 — you can configure any depth, and the rest will fallback to top-level defaults. Duplicate depths are not allowed.
+  </Note>
+</Accordion>
+
+## Visual Styling
+
+### UI Section
+
+```toml
+[recursive_grid.ui]
+```
+
+<ParamField path="line_color_light" type="string" default='#FF007A9E'>
+  Grid line color for Light Mode. Format: `#AARRGGBB` or `#RRGGBB`.
+</ParamField>
+
+<ParamField path="line_color_dark" type="string" default='#FF00CFCF'>
+  Grid line color for Dark Mode.
+</ParamField>
+
+<ParamField path="line_width" type="integer" default="1">
+  Line thickness in pixels. Valid range: ≥0.
+</ParamField>
+
+<ParamField path="highlight_color_light" type="string" default='#4D007A9E'>
+  Cell highlight color for Light Mode.
+</ParamField>
+
+<ParamField path="highlight_color_dark" type="string" default='#4D00CFCF'>
+  Cell highlight color for Dark Mode.
+</ParamField>
+
+<ParamField path="text_color_light" type="string" default='#FF007A9E'>
+  Cell text color for Light Mode.
+</ParamField>
+
+<ParamField path="text_color_dark" type="string" default='#FF00CFCF'>
+  Cell text color for Dark Mode.
+</ParamField>
+
+<ParamField path="font_size" type="integer" default="10">
+  Font size for labels in points. Valid range: 6–72.
+</ParamField>
+
+<ParamField path="font_family" type="string" default='"'>
+  Font family for labels. Empty string uses system font.
+</ParamField>
+
+### Label Backgrounds
+
+<ParamField path="label_background" type="boolean" default="false">
+  Add rounded backgrounds behind cell labels. When enabled, shows a separate badge behind each letter.
+</ParamField>
+
+<ParamField path="label_background_color_light" type="string" default='#FFAAEEFF'>
+  Label background for Light Mode (when `label_background = true`).
+</ParamField>
+
+<ParamField path="label_background_color_dark" type="string" default='#FF003554'>
+  Label background for Dark Mode (when `label_background = true`).
+</ParamField>
+
+<ParamField path="label_background_padding_x" type="integer" default="-1">
+  Horizontal badge padding. `-1` = automatic.
+</ParamField>
+
+<ParamField path="label_background_padding_y" type="integer" default="-1">
+  Vertical badge padding. `-1` = automatic.
+</ParamField>
+
+<ParamField path="label_background_border_radius" type="integer" default="-1">
+  Badge border radius. `-1` = automatic pill shape.
+</ParamField>
+
+<ParamField path="label_background_border_width" type="integer" default="1">
+  Badge border width. Valid range: ≥0 (`0` disables border).
+</ParamField>
+
+### Sub-Key Preview
+
+<ParamField path="sub_key_preview" type="boolean" default="false">
+  Draw miniature key grid inside each cell. Shows which key maps to which sub-region, helpful when learning the key layout.
+</ParamField>
+
+<ParamField path="sub_key_preview_font_size" type="integer" default="8">
+  Font size for sub-key preview labels. Valid range: 4–72.
+</ParamField>
+
+<ParamField path="sub_key_preview_autohide_multiplier" type="float" default="1.5">
+  Preview hides when sub-cell size < `font_size × multiplier`. Set to `0` to never hide. Prevents overlapping labels in small cells.
+</ParamField>
+
+<ParamField path="sub_key_preview_text_color_light" type="string" default='#66007A9E'>
+  Sub-key label color for Light Mode (40% opacity for subtlety).
+</ParamField>
+
+<ParamField path="sub_key_preview_text_color_dark" type="string" default='#6600CFCF'>
+  Sub-key label color for Dark Mode (40% opacity for subtlety).
+</ParamField>
+
+<Note>
+  For odd-sized preview grids (e.g., 3×3), Neru leaves the exact center preview slot empty to avoid overlapping the main cell label.
+</Note>
+
+## Complete Examples
+
+<CodeGroup>
+```toml Basic 2x2
+[recursive_grid]
+enabled = true
+grid_cols = 2
+grid_rows = 2
+keys = "uijk"
+min_size_width = 25
+min_size_height = 25
+max_depth = 10
+
+[recursive_grid.ui]
+font_size = 10
+line_width = 1
+```
+
+```toml 3x3 with Labels
+[recursive_grid]
+enabled = true
+grid_cols = 3
+grid_rows = 3
+keys = "gcrhtnmwv"
+min_size_width = 30
+min_size_height = 30
+max_depth = 8
+auto_exit_actions = ["left_click"]
+
+[recursive_grid.ui]
+font_size = 12
+font_family = "SF Mono"
+label_background = true
+label_background_padding_x = 6
+label_background_padding_y = 4
+sub_key_preview = true
+sub_key_preview_font_size = 8
+```
+
+```toml Multi-Depth Layers
+[recursive_grid]
+grid_cols = 2
+grid_rows = 2
+keys = "uijk"
+
+# First level: wide 4x2
+[[recursive_grid.layers]]
+depth = 0
+grid_cols = 4
+grid_rows = 2
+keys = "qwerasdf"
+
+# Second level: 3x3
+[[recursive_grid.layers]]
+depth = 1
+grid_cols = 3
+grid_rows = 3
+keys = "qweasdzxc"
+
+# Subsequent levels use 2x2 default
+```
+</CodeGroup>
+
+## Key Behavior
+
+| Key                       | Action                    |
+|---------------------------|---------------------------|
+| Cell keys (e.g., `u`, `i`, `j`, `k`) | Narrow to that cell       |
+| Backspace/Delete          | Go up one level           |
+| Reset key (space)         | Return to initial center  |
+| Escape                    | Exit mode                 |
+
+## Validation Rules
+
+- `grid_cols` and `grid_rows` must be ≥2
+- `keys` must have exactly `grid_cols × grid_rows` unique characters
+- `min_size_width` and `min_size_height` must be ≥10
+- `max_depth` must be between 1 and 20
+- Layer depths must be unique and valid
+- Layer keys must match layer grid dimensions
+
+## Related Configuration
+
+- [Grid Configuration](/api/config/grid) - Standard grid navigation
+- [General Settings](/api/config/general) - Global exit keys
+- [Appearance](/api/config/appearance) - Mode indicators

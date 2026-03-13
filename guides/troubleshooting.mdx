@@ -1,0 +1,885 @@
+---
+title: Troubleshooting
+description: Common issues and solutions for Neru
+---
+
+Comprehensive troubleshooting guide for Neru issues, from permissions to app-specific problems.
+
+## Quick Diagnosis
+
+Start here if Neru isn't working:
+
+<Steps>
+  <Step title="Check Daemon Status">
+    ```bash
+    neru status
+    ```
+    If not running: `neru launch`
+  </Step>
+  
+  <Step title="Check Permissions">
+    ```bash
+    neru doctor
+    ```
+    Grant accessibility permissions if needed.
+  </Step>
+  
+  <Step title="Test Basic Functionality">
+    ```bash
+    neru hints
+    ```
+    Should show hints on screen.
+  </Step>
+  
+  <Step title="Check Logs">
+    ```bash
+    tail -20 ~/Library/Logs/neru/app.log
+    ```
+    Look for ERROR or WARN messages.
+  </Step>
+</Steps>
+
+## Common Error Messages
+
+<Accordion title="✗ Failed to connect to Neru daemon">
+**Problem:** Daemon not running.
+
+**Solution:**
+```bash
+neru launch
+```
+
+If that fails:
+```bash
+pkill -9 neru
+rm -f /var/folders/*/*/T/neru.sock
+neru launch
+```
+</Accordion>
+
+<Accordion title="✗ Permission denied">
+**Problem:** Missing accessibility permissions.
+
+**Solution:**
+1. Open System Settings → Privacy & Security → Accessibility
+2. Add Neru and enable checkbox
+3. Restart: `pkill neru && neru launch`
+</Accordion>
+
+<Accordion title="✗ No hints appear">
+**Problem:** App excluded, permissions missing, or app doesn't support accessibility.
+
+**Solution:**
+1. Check exclusions:
+   ```toml
+   [general]
+   excluded_apps = [
+       # Remove app from here if present
+   ]
+   ```
+2. Verify permissions: `neru doctor`
+3. Try different app (Safari, Finder)
+4. For Electron apps, enable AX support:
+   ```toml
+   [hints.additional_ax_support]
+   enable = true
+   ```
+</Accordion>
+
+## Installation & Setup
+
+### "Cannot open Neru because the developer cannot be verified"
+
+**Problem:** macOS Gatekeeper blocking unverified app.
+
+**Solution:**
+
+```bash
+# Remove quarantine attribute
+xattr -cr /Applications/Neru.app
+
+# Open app
+open -a Neru
+```
+
+Alternatively:
+1. Right-click Neru.app → Open
+2. Click "Open" in security dialog
+
+### "Command not found: neru"
+
+**Problem:** Neru CLI not in PATH.
+
+**Solution:**
+
+```bash
+# Check if neru binary exists
+ls -l /usr/local/bin/neru
+
+# If missing, create symlink
+ln -s /Applications/Neru.app/Contents/MacOS/neru /usr/local/bin/neru
+
+# Or add to PATH in ~/.zshrc or ~/.bashrc
+export PATH="/usr/local/bin:$PATH"
+```
+
+### Homebrew Installation Fails
+
+**Solution:**
+
+```bash
+# Update Homebrew
+brew update
+
+# Reinstall
+brew reinstall --cask neru
+
+# If tap fails, add manually
+brew tap y3owk1n/neru
+brew install --cask neru
+```
+
+## Permissions
+
+### Accessibility Permissions Not Working
+
+<Steps>
+  <Step title="Remove from Accessibility List">
+    System Settings → Privacy & Security → Accessibility
+    
+    Remove Neru from list (click - button)
+  </Step>
+  
+  <Step title="Re-add Neru">
+    Click + button, navigate to `/Applications/Neru.app`, add it
+    
+    Ensure checkbox is enabled
+  </Step>
+  
+  <Step title="Restart Neru">
+    ```bash
+    pkill neru && neru launch
+    ```
+  </Step>
+  
+  <Step title="Verify">
+    ```bash
+    neru doctor
+    ```
+  </Step>
+</Steps>
+
+### Permission Dialog Not Appearing
+
+**Solution:**
+
+```bash
+# Trigger permission prompt manually
+tccutil reset Accessibility
+
+# Restart Neru (will prompt for permissions)
+pkill neru
+neru launch
+```
+
+## Hints & Grids
+
+### No Hints/Grids Appear
+
+<Steps>
+  <Step title="Check Daemon">
+    ```bash
+    neru status
+    ```
+    If not running: `neru launch`
+  </Step>
+  
+  <Step title="Check Permissions">
+    ```bash
+    neru doctor
+    ```
+  </Step>
+  
+  <Step title="Test CLI">
+    ```bash
+    neru hints
+    # or
+    neru grid
+    ```
+  </Step>
+  
+  <Step title="Check Exclusions">
+    ```toml
+    [general]
+    excluded_apps = [
+        # Remove current app from here
+    ]
+    ```
+  </Step>
+  
+  <Step title="Test Different App">
+    Try Safari or Finder - if hints work there, issue is app-specific.
+  </Step>
+</Steps>
+
+### Hints Misaligned (Rare)
+
+**Problem:** Hints positioned incorrectly (extremely rare).
+
+**Solution:**
+
+```toml
+# Enable debug logging
+[logging]
+log_level = "debug"
+```
+
+Restart and check logs:
+
+```bash
+pkill neru && neru launch
+tail -f ~/Library/Logs/neru/app.log
+```
+
+Report issue with:
+- macOS version (`sw_vers`)
+- App name and version
+- Screenshot
+- Log excerpt
+
+### Hints Don't Appear in Electron Apps
+
+**Problem:** Electron apps (VS Code, Slack, etc.) need additional AX support.
+
+**Solution:**
+
+```toml
+[hints.additional_ax_support]
+enable = true
+
+# Auto-detected apps:
+# - VS Code (com.microsoft.VSCode)
+# - Slack (com.tinyspeck.slackmacgap)
+# - Spotify (com.spotify.client)
+# - Obsidian (md.obsidian)
+# - Windsurf (com.exafunction.windsurf)
+
+# Add custom Electron apps if needed
+additional_electron_bundles = ["com.example.electronapp"]
+```
+
+Restart:
+
+```bash
+pkill neru && neru launch
+```
+
+Check logs for:
+
+```
+App requires Electron support
+Enabled AXManualAccessibility for: com.your.app
+```
+
+### Hints Don't Appear in Chrome/Firefox Content
+
+**Problem:** Browser needs additional AX support.
+
+**Solution:**
+
+```toml
+[hints.additional_ax_support]
+enable = true
+
+# Auto-detected browsers:
+# - Chrome (com.google.Chrome)
+# - Brave (com.brave.Browser)
+# - Arc (company.thebrowser.Browser)
+# - Firefox (org.mozilla.firefox)
+# - Zen Browser (app.zen-browser.zen)
+
+additional_chromium_bundles = ["com.example.browser"]
+additional_firefox_bundles = ["com.example.firefox"]
+```
+
+### No Hints in Menubar/Dock
+
+**Problem:** Menubar/Dock hints disabled in config.
+
+**Solution:**
+
+```toml
+[hints]
+include_menubar_hints = true
+include_dock_hints = true
+
+# For specific menubar apps:
+additional_menubar_hints_targets = [
+    "com.apple.controlcenter",
+    "net.kovidgoyal.kitty",
+]
+```
+
+Restart:
+
+```bash
+pkill neru && neru launch
+```
+
+### Grid Cells Don't Match Screen Coordinates
+
+**Problem:** Extremely rare coordinate mismatch.
+
+**Solution:**
+
+Enable debug logging and report issue:
+
+```toml
+[logging]
+log_level = "debug"
+```
+
+```bash
+pkill neru && neru launch
+tail -f ~/Library/Logs/neru/app.log
+```
+
+## Hotkeys
+
+### Hotkey Does Nothing
+
+**Possible causes:**
+1. Hotkey conflict with another app
+2. Daemon not running
+3. App is excluded
+4. Incorrect hotkey syntax
+
+**Solution:**
+
+<Steps>
+  <Step title="Test with CLI">
+    ```bash
+    neru hints
+    ```
+    If CLI works, it's a hotkey issue.
+  </Step>
+  
+  <Step title="Check Daemon">
+    ```bash
+    neru status
+    ```
+  </Step>
+  
+  <Step title="Try Different Hotkey">
+    ```toml
+    [hotkeys]
+    "Ctrl+F" = "hints"  # Try this instead
+    ```
+  </Step>
+  
+  <Step title="Verify Syntax">
+    Correct format: `"Mod1+Mod2+Key" = "action"`
+    
+    Modifiers: `Cmd`, `Ctrl`, `Alt`/`Option`, `Shift`
+  </Step>
+</Steps>
+
+### Hotkey Works in Some Apps But Not Others
+
+**Problem:** App is in excluded list.
+
+**Solution:**
+
+```toml
+[general]
+excluded_apps = [
+    # "com.apple.Terminal",  # Comment out to enable
+]
+```
+
+Find bundle ID:
+
+```bash
+osascript -e 'id of app "AppName"'
+```
+
+### Hotkey Conflicts with System Shortcuts
+
+**Solution:**
+
+**Option 1: Change Neru hotkey**
+
+```toml
+[hotkeys]
+"Cmd+Shift+Space" = ""          # Disable default
+"Ctrl+Alt+Space" = "hints"      # Use different combo
+```
+
+**Option 2: Disable system shortcut**
+
+1. System Settings → Keyboard → Keyboard Shortcuts
+2. Find conflicting shortcut
+3. Disable or change it
+
+**Option 3: Use external hotkey manager**
+
+```bash
+# ~/.config/skhd/skhdrc
+ctrl - f : neru hints
+```
+
+Then disable Neru hotkeys:
+
+```toml
+[hotkeys]
+# Leave empty
+```
+
+## Performance
+
+### Hints Appear Slowly
+
+**Possible causes:**
+1. Deep accessibility tree
+2. Debug logging enabled
+3. System resource constraints
+
+**Solution:**
+
+```toml
+[hints]
+max_depth = 30              # Reduce from 50
+parallel_threshold = 10     # Lower for more parallelization
+
+[logging]
+log_level = "info"          # Not "debug"
+```
+
+Check system resources:
+
+```bash
+top -o cpu
+```
+
+### High CPU Usage
+
+**Problem:** Neru shouldn't use high CPU when idle.
+
+**Solution:**
+
+```bash
+# Check Neru CPU usage
+top -pid $(pgrep neru)
+
+# Check logs for errors
+tail -f ~/Library/Logs/neru/app.log | grep ERROR
+
+# Restart daemon
+pkill neru && neru launch
+```
+
+If persistent, report issue with:
+- macOS version
+- CPU usage %
+- Log excerpt
+
+### High Memory Usage
+
+**Solution:**
+
+```toml
+[grid]
+enable_gc = true  # Enable garbage collection
+prewarm_enabled = false  # Disable prewarming (~1.5MB saved)
+```
+
+Restart:
+
+```bash
+pkill neru && neru launch
+```
+
+## Daemon
+
+### "Failed to connect to Neru daemon"
+
+**Solution:**
+
+```bash
+# Start daemon
+neru launch
+
+# Check status
+neru status
+
+# If still failing, clean up stale socket
+rm -f /var/folders/*/*/T/neru.sock
+neru launch
+```
+
+### Daemon Crashes on Startup
+
+**Problem:** Configuration error or system issue.
+
+**Solution:**
+
+<Steps>
+  <Step title="Check Logs">
+    ```bash
+    cat ~/Library/Logs/neru/app.log
+    ```
+  </Step>
+  
+  <Step title="Try Default Config">
+    ```bash
+    # Temporarily rename config
+    mv ~/.config/neru/config.toml ~/.config/neru/config.toml.bak
+    
+    # Launch with defaults
+    neru launch
+    ```
+  </Step>
+  
+  <Step title="Try Minimal Config">
+    ```bash
+    mkdir -p ~/.config/neru
+    cat > ~/.config/neru/config.toml << EOF
+    [hotkeys]
+    "Cmd+Shift+Space" = "hints"
+    
+    [logging]
+    log_level = "debug"
+    EOF
+    
+    neru launch
+    ```
+  </Step>
+</Steps>
+
+### Daemon Stops Responding
+
+**Solution:**
+
+```bash
+# Force quit
+pkill -9 neru
+
+# Clean up socket
+rm -f /var/folders/*/*/T/neru.sock
+
+# Restart
+neru launch
+
+# Monitor logs
+tail -f ~/Library/Logs/neru/app.log
+```
+
+### Daemon Won't Quit
+
+**Solution:**
+
+```bash
+# Force quit
+pkill -9 neru
+```
+
+Or use Activity Monitor:
+1. Open Activity Monitor
+2. Search "Neru"
+3. Select and click "Force Quit"
+
+## App-Specific Issues
+
+### VS Code: Hints Don't Appear in Editor
+
+**Solution:**
+
+```toml
+[hints.additional_ax_support]
+enable = true
+# VS Code is auto-detected
+```
+
+### Adobe Apps: Hints Misaligned or Missing
+
+**Solution:**
+
+```toml
+[[hints.app_configs]]
+bundle_id = "com.adobe.illustrator"
+additional_clickable_roles = ["AXStaticText", "AXImage"]
+ignore_clickable_check = true
+```
+
+Find bundle ID:
+
+```bash
+osascript -e 'id of app "Adobe Illustrator"'
+```
+
+### Mission Control: No Hints
+
+**Solution:**
+
+```toml
+[hints]
+include_dock_hints = true
+detect_mission_control = true  # macOS 15.4+ only
+```
+
+<Warning>
+`detect_mission_control` **only works on macOS 15.4+ (Tahoe)**. Do not enable on earlier versions - it causes false positives.
+</Warning>
+
+### Safari: Hints Appear Slowly
+
+**Solution:**
+
+```toml
+[[hints.app_configs]]
+bundle_id = "com.apple.Safari"
+mouse_action_refresh_delay = 1000  # 1 second delay
+```
+
+### Terminal: Hints Not Needed
+
+**Solution:**
+
+Exclude terminal apps:
+
+```toml
+[general]
+excluded_apps = [
+    "com.apple.Terminal",
+    "com.googlecode.iterm2",
+]
+```
+
+## Keyboard Layout Issues
+
+### Wrong Characters Produced When Typing
+
+**Problem:** Keyboard layout not detected correctly.
+
+**Solution:**
+
+1. **Check keyboard layout in macOS:**
+   - System Settings → Keyboard → Input Sources
+   - Ensure desired layout is selected
+
+2. **Force specific layout in Neru:**
+   ```toml
+   [general]
+   kb_layout_to_use = "com.apple.keylayout.ABC"
+   ```
+
+3. **Find available layouts:**
+   ```bash
+   defaults read com.apple.HIToolbox AppleEnabledInputSources
+   ```
+
+### Input Methods Not Working (CJK IME)
+
+**Problem:** CJK input methods (Pinyin, Wubi, etc.) not working.
+
+**Solution:**
+
+Neru supports CJK input methods. If not working:
+
+1. Ensure input method is installed and active in macOS
+2. Check accessibility permissions: `neru doctor`
+3. Test with different input method
+
+## Configuration
+
+### Config Changes Not Taking Effect
+
+**Solution:**
+
+```bash
+# Reload config
+neru config reload
+
+# Or restart daemon
+pkill neru && neru launch
+
+# Verify config location
+neru status
+# Check "Config:" line in output
+```
+
+### "Failed to parse config"
+
+**Problem:** TOML syntax error.
+
+**Solution:**
+
+<Steps>
+  <Step title="Check Logs">
+    ```bash
+    cat ~/Library/Logs/neru/app.log | grep ERROR
+    ```
+  </Step>
+  
+  <Step title="Validate TOML Syntax">
+    Use online validator: https://www.toml-lint.com/
+  </Step>
+  
+  <Step title="Common Issues">
+    - Missing quotes around keys/values
+    - Incorrect section headers
+    - Invalid color format (must be `#AARRGGBB` or `#RRGGBB`)
+  </Step>
+  
+  <Step title="Use Default Config as Reference">
+    ```bash
+    curl -o /tmp/default.toml \
+      https://raw.githubusercontent.com/y3owk1n/neru/main/configs/default-config.toml
+    ```
+  </Step>
+</Steps>
+
+### Colors Not Working
+
+**Problem:** Incorrect hex color format.
+
+**Solution:**
+
+```toml
+# Correct:
+background_color = "#FFD700"
+background_color = "#FF00FF00"  # With alpha
+
+# Incorrect:
+background_color = "FFD700"     # Missing #
+background_color = "#FFFGG"     # Invalid hex
+```
+
+### Hotkeys in Wrong Format
+
+**Solution:**
+
+```toml
+# Correct:
+"Cmd+Shift+Space" = "hints"
+
+# Incorrect:
+"Cmd-Shift-Space" = "hints"  # Use +, not -
+"CMD+SHIFT+SPACE" = "hints"  # Use proper case
+```
+
+## Logging and Debugging
+
+### Enable Debug Logging
+
+```toml
+[logging]
+log_level = "debug"
+```
+
+Restart:
+
+```bash
+pkill neru && neru launch
+```
+
+### View Logs
+
+```bash
+# Real-time monitoring
+tail -f ~/Library/Logs/neru/app.log
+
+# Last 100 lines
+tail -100 ~/Library/Logs/neru/app.log
+
+# Search for errors
+grep ERROR ~/Library/Logs/neru/app.log
+
+# Search for specific app
+grep "com.apple.Safari" ~/Library/Logs/neru/app.log
+```
+
+### Common Log Messages
+
+| Message | Meaning |
+|---------|----------|
+| `App requires Electron support` | Electron app detected, needs AX support |
+| `Enabled AXManualAccessibility` | Electron support activated |
+| `No clickable elements found` | No hints to show (app may need custom config) |
+| `Failed to get AX elements` | Accessibility permission issue |
+
+### Clear Logs
+
+```bash
+# Remove old logs
+rm ~/Library/Logs/neru/app.log
+
+# Restart daemon (creates fresh log)
+pkill neru && neru launch
+```
+
+## Emergency Reset
+
+If Neru is completely broken:
+
+```bash
+# 1. Force quit
+pkill -9 neru
+
+# 2. Remove all Neru files
+rm -rf /Applications/Neru.app
+rm -f /usr/local/bin/neru
+rm -rf ~/.config/neru
+rm -rf ~/Library/Application\ Support/neru
+rm -rf ~/Library/Logs/neru
+rm -f /var/folders/*/*/T/neru.sock
+
+# 3. Reinstall
+brew reinstall --cask neru
+# or build from source
+
+# 4. Fresh start (no config)
+neru launch
+
+# 5. Grant permissions again
+# System Settings → Privacy & Security → Accessibility
+```
+
+## Getting Help
+
+If none of these solutions work:
+
+<Steps>
+  <Step title="Gather Information">
+    - macOS version: `sw_vers`
+    - Neru version: `neru --version`
+    - App name and version where issue occurs
+    - Config file (anonymize if needed)
+    - Relevant logs
+  </Step>
+  
+  <Step title="Search Existing Issues">
+    https://github.com/y3owk1n/neru/issues
+  </Step>
+  
+  <Step title="Open an Issue">
+    Include:
+    - All gathered information
+    - Expected vs actual behavior
+    - Steps to reproduce
+    - Screenshots if relevant
+  </Step>
+  
+  <Step title="Consider a Pull Request">
+    - Fix the problem yourself and contribute
+    - Pull requests are more likely to be reviewed than issues
+    - See [DEVELOPMENT.md](https://github.com/y3owk1n/neru/blob/main/docs/DEVELOPMENT.md)
+  </Step>
+</Steps>
+
+## Next Steps
+
+- [CLI Usage](/guides/cli-usage) - Command-line interface
+- [Configuration Reference](/concepts/configuration-overview) - Complete config options
+- [Hints Mode](/guides/hints-mode) - Element-based navigation
+- [Shell Integration](/guides/shell-integration) - Completions and automation

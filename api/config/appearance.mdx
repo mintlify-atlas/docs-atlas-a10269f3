@@ -1,0 +1,347 @@
+---
+title: Appearance Configuration
+description: Mode indicators, smooth cursor animation, and systray settings
+---
+
+## Overview
+
+Appearance settings control visual feedback elements including mode indicators, cursor animation, and system tray icon visibility.
+
+## Mode Indicator
+
+A small label that follows the cursor showing the current active mode. Provides visual feedback on which mode is active, especially useful across multiple monitors or when learning Neru.
+
+### Configuration Section
+
+```toml
+[mode_indicator]
+```
+
+## Per-Mode Settings
+
+Each mode has its own configuration under `[mode_indicator.<mode>]`. Available modes: `scroll`, `hints`, `grid`, `recursive_grid`.
+
+### Scroll Mode Indicator
+
+```toml
+[mode_indicator.scroll]
+```
+
+<ParamField path="scroll.enabled" type="boolean" default="true">
+  Show indicator when in scroll mode.
+</ParamField>
+
+<ParamField path="scroll.text" type="string" default='Scroll'>
+  Label text to display. Empty string (`""`) hides the label but keeps indicator enabled.
+</ParamField>
+
+### Hints Mode Indicator
+
+```toml
+[mode_indicator.hints]
+```
+
+<ParamField path="hints.enabled" type="boolean" default="false">
+  Show indicator when in hints mode.
+</ParamField>
+
+<ParamField path="hints.text" type="string" default='Hints'>
+  Label text to display.
+</ParamField>
+
+### Grid Mode Indicator
+
+```toml
+[mode_indicator.grid]
+```
+
+<ParamField path="grid.enabled" type="boolean" default="false">
+  Show indicator when in grid mode.
+</ParamField>
+
+<ParamField path="grid.text" type="string" default='Grid'>
+  Label text to display.
+</ParamField>
+
+### Recursive Grid Mode Indicator
+
+```toml
+[mode_indicator.recursive_grid]
+```
+
+<ParamField path="recursive_grid.enabled" type="boolean" default="false">
+  Show indicator when in recursive-grid mode.
+</ParamField>
+
+<ParamField path="recursive_grid.text" type="string" default='Recursive Grid'>
+  Label text to display.
+</ParamField>
+
+## Per-Mode Color Overrides
+
+Each mode can override the shared UI colors. When empty (`""`), inherits from `[mode_indicator.ui]`.
+
+<ParamField path="<mode>.background_color_light" type="string" default='"'>
+  Per-mode background override for Light Mode.
+</ParamField>
+
+<ParamField path="<mode>.background_color_dark" type="string" default='"'>
+  Per-mode background override for Dark Mode.
+</ParamField>
+
+<ParamField path="<mode>.text_color_light" type="string" default='"'>
+  Per-mode text color override for Light Mode.
+</ParamField>
+
+<ParamField path="<mode>.text_color_dark" type="string" default='"'>
+  Per-mode text color override for Dark Mode.
+</ParamField>
+
+<ParamField path="<mode>.border_color_light" type="string" default='"'>
+  Per-mode border color override for Light Mode.
+</ParamField>
+
+<ParamField path="<mode>.border_color_dark" type="string" default='"'>
+  Per-mode border color override for Dark Mode.
+</ParamField>
+
+### Example: Per-Mode Colors
+
+```toml
+# Different color for hints mode
+[mode_indicator.hints]
+enabled = true
+text = "Hints"
+background_color_light = "#F2FF6B6B"
+background_color_dark = "#F2CC3333"
+
+# Hide label text but keep indicator enabled
+[mode_indicator.grid]
+enabled = true
+text = ""
+```
+
+## Shared Appearance
+
+```toml
+[mode_indicator.ui]
+```
+
+Shared visual settings for all mode indicators. Per-mode color overrides take precedence.
+
+<ParamField path="font_size" type="integer" default="10">
+  Text size in points. Valid range: ≥1.
+</ParamField>
+
+<ParamField path="font_family" type="string" default='"'>
+  Font name. Empty string uses system font.
+</ParamField>
+
+<ParamField path="background_color_light" type="string" default='#F200CFCF'>
+  Background for Light Mode. Format: `#AARRGGBB` or `#RRGGBB`.
+</ParamField>
+
+<ParamField path="background_color_dark" type="string" default='#F200CFCF'>
+  Background for Dark Mode.
+</ParamField>
+
+<ParamField path="text_color_light" type="string" default='#FF003554'>
+  Text color for Light Mode.
+</ParamField>
+
+<ParamField path="text_color_dark" type="string" default='#FF003554'>
+  Text color for Dark Mode.
+</ParamField>
+
+<ParamField path="border_color_light" type="string" default='#FF007A9E'>
+  Border color for Light Mode.
+</ParamField>
+
+<ParamField path="border_color_dark" type="string" default='#FF007A9E'>
+  Border color for Dark Mode.
+</ParamField>
+
+<ParamField path="border_width" type="integer" default="1">
+  Border width in pixels. Valid range: ≥0.
+</ParamField>
+
+<ParamField path="padding_x" type="integer" default="-1">
+  Horizontal padding in pixels. `-1` = automatic based on font size.
+</ParamField>
+
+<ParamField path="padding_y" type="integer" default="-1">
+  Vertical padding in pixels. `-1` = automatic based on font size.
+</ParamField>
+
+<ParamField path="border_radius" type="integer" default="-1">
+  Border radius in pixels. `-1` = automatic pill shape.
+</ParamField>
+
+<ParamField path="indicator_x_offset" type="integer" default="20">
+  X offset from cursor in pixels.
+</ParamField>
+
+<ParamField path="indicator_y_offset" type="integer" default="20">
+  Y offset from cursor in pixels.
+</ParamField>
+
+## Smooth Cursor
+
+Animate cursor movement between positions for visual tracking and aesthetic preference.
+
+### Configuration Section
+
+```toml
+[smooth_cursor]
+```
+
+<ParamField path="move_mouse_enabled" type="boolean" default="false">
+  Enable smooth cursor movement animation. When `false`, cursor jumps instantly (default).
+</ParamField>
+
+<ParamField path="steps" type="integer" default="10">
+  Number of intermediate positions in the animation. Valid range: ≥1.
+  
+  **Effect:**
+  - Higher values = smoother but slower
+  - Lower values = faster but less smooth
+</ParamField>
+
+<ParamField path="delay" type="integer" default="1">
+  Milliseconds between animation steps. Valid range: ≥0.
+  
+  **Effect:**
+  - Higher values = slower, more visible animation
+  - Lower values = faster animation
+</ParamField>
+
+### Smooth Cursor Examples
+
+<CodeGroup>
+```toml Disabled (instant)
+[smooth_cursor]
+move_mouse_enabled = false
+```
+
+```toml Smooth but slower
+[smooth_cursor]
+move_mouse_enabled = true
+steps = 10
+delay = 10
+```
+
+```toml Fast with less smoothness
+[smooth_cursor]
+move_mouse_enabled = true
+steps = 5
+delay = 2
+```
+</CodeGroup>
+
+## Systray
+
+System tray (menu bar) icon configuration for macOS.
+
+### Configuration Section
+
+```toml
+[systray]
+```
+
+<ParamField path="enabled" type="boolean" default="true">
+  Show menu bar icon. When `false`, runs in headless mode (control via hotkeys and CLI only).
+</ParamField>
+
+### Headless Mode
+
+When `systray.enabled = false`:
+
+- No menu bar icon appears
+- Control Neru exclusively via hotkeys and CLI commands
+- Useful for minimal setups or custom status bars
+
+<Warning>
+  Changing `systray.enabled` requires restarting Neru. Configuration reload (`neru config reload`) will not apply this change.
+</Warning>
+
+## Complete Examples
+
+<CodeGroup>
+```toml Basic Mode Indicators
+[mode_indicator.scroll]
+enabled = true
+text = "Scroll"
+
+[mode_indicator.hints]
+enabled = true
+text = "Hints"
+
+[mode_indicator.ui]
+font_size = 10
+indicator_x_offset = 20
+indicator_y_offset = 20
+```
+
+```toml Custom Styling
+[mode_indicator.scroll]
+enabled = true
+text = "📜 Scroll"
+
+[mode_indicator.hints]
+enabled = true
+text = "Hints"
+background_color_light = "#F2FF6B6B"
+background_color_dark = "#F2CC3333"
+
+[mode_indicator.ui]
+font_size = 12
+font_family = "SF Mono"
+border_radius = 8
+padding_x = 8
+padding_y = 6
+indicator_x_offset = 30
+indicator_y_offset = 30
+
+[smooth_cursor]
+move_mouse_enabled = true
+steps = 8
+delay = 5
+```
+
+```toml Minimal (no indicators, headless)
+[mode_indicator.scroll]
+enabled = false
+
+[mode_indicator.hints]
+enabled = false
+
+[mode_indicator.grid]
+enabled = false
+
+[mode_indicator.recursive_grid]
+enabled = false
+
+[smooth_cursor]
+move_mouse_enabled = false
+
+[systray]
+enabled = false
+```
+</CodeGroup>
+
+## Validation Rules
+
+- `font_size` must be ≥1
+- `border_width` must be ≥0
+- `padding_x` and `padding_y` must be ≥1 or `-1`
+- `border_radius` must be ≥1 or `-1`
+- `steps` must be ≥1
+- `delay` must be ≥0
+- Colors must be valid hex format
+
+## Related Configuration
+
+- [General Settings](/api/config/general) - Global behavior settings
+- [Hints Configuration](/api/config/hints) - Hints mode styling
+- [Grid Configuration](/api/config/grid) - Grid mode styling
+- [Scroll Configuration](/api/config/scroll) - Scroll mode settings

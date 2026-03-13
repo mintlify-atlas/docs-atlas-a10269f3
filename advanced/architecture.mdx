@@ -1,0 +1,467 @@
+---
+title: "System Architecture"
+description: "Deep dive into Neru's hexagonal architecture, core components, and design principles"
+---
+
+## Overview
+
+Neru follows a **Hexagonal Architecture (Ports and Adapters)** pattern, ensuring clean separation between business logic and platform-specific implementations. This design enables cross-platform support while maintaining a deep integration with native macOS APIs.
+
+<Info>
+  All core logic is written in pure Go and resides in `internal/core/domain` and `internal/app/services`. OS-specific code is strictly isolated in `internal/core/infra/platform/`.
+</Info>
+
+## Architectural Layers
+
+Neru's architecture is organized into distinct layers, each with specific responsibilities:
+
+<Steps>
+  <Step title="Domain Layer">
+    Pure business logic with no external dependencies
+    
+    **Location**: `internal/core/domain/`
+    
+    Contains core entities and business rules:
+    - **Hint** (`internal/core/domain/hint/`): Hint generation and label assignment
+    - **Grid** (`internal/core/domain/grid/`): Grid calculation and cell mapping
+    - **Element** (`internal/core/domain/element/`): UI element representation
+    - **Action** (`internal/core/domain/action/`): Action types and definitions
+    
+    This layer is completely platform-agnostic and contains zero platform-specific imports.
+  </Step>
+
+  <Step title="Ports Layer">
+    Interface contracts defining system capabilities
+    
+    **Location**: `internal/core/ports/`
+    
+    Key port definitions:
+    - **AccessibilityPort** (`accessibility.go`): UI element discovery and interaction
+    - **OverlayPort** (`overlay.go`): Overlay rendering and visibility management
+    - **SystemPort** (`system.go`): Screen, cursor, filesystem, and permissions
+    - **ConfigPort** (`config.go`): Configuration management
+    
+    Ports define *what* the system can do, not *how* it does it.
+  </Step>
+
+  <Step title="Application Layer">
+    Orchestrates domain entities and implements use cases
+    
+    **Location**: `internal/app/`
+    
+    Key components:
+    - **Services** (`services/`): Business logic orchestration (HintService, GridService, ActionService)
+    - **Modes** (`modes/`): Navigation mode implementations (Hints, Grid, Scroll, Recursive Grid)
+    - **Components** (`components/`): UI component management
+    - **App** (`app.go`): Central application state and lifecycle
+    
+    The application layer depends only on domain entities and port interfaces.
+  </Step>
+
+  <Step title="Infrastructure Layer">
+    Concrete implementations of ports using platform APIs
+    
+    **Location**: `internal/core/infra/`
+    
+    Key adapters:
+    - **Accessibility** (`accessibility/`): Platform accessibility API integration
+    - **Overlay** (`overlay/`): Native window management
+    - **Hotkeys** (`hotkeys/`): Global hotkey registration
+    - **EventTap** (`eventtap/`): Keyboard event interception
+    - **Platform** (`platform/`): OS-specific implementations
+    
+    Each adapter implements one or more port interfaces.
+  </Step>
+
+  <Step title="Presentation Layer">
+    User interface and rendering
+    
+    **Location**: `internal/ui/`
+    
+    Handles:
+    - Coordinate transformations
+    - Overlay rendering abstractions
+    - UI state management
+  </Step>
+</Steps>
+
+## Core Domain Concepts
+
+### Mode
+
+A **Mode** represents a navigation context (hints, grid, scroll, action). Each mode implements the `Mode` interface:
+
+```go
+type Mode interface {
+    Activate(action *string)
+    HandleKey(key string)
+    HandleActionKey(key string)
+    Exit()
+    ToggleActionMode()
+    ModeType() domain.Mode
+}
+```
+
+**Key implementations**:
+- **HintsMode** (`internal/app/guides/hints-mode.go`): Overlays character labels on clickable elements
+- **GridMode** (`internal/app/guides/grid-mode.go`): Divides screen into coordinate grid
+- **ScrollMode** (`internal/app/guides/scroll-mode.go`): Vim-style scrolling
+- **RecursiveGridMode** (`internal/app/modes/recursive_grid.go`): Recursive cell subdivision
+
+### Bridge
+
+The **Bridge** is the CGo + Objective-C integration layer that connects Go code to macOS native APIs.
+
+**Location**: `internal/core/infra/platform/darwin/`
+
+**Key files**:
+- `bridge.go`: Go-side bridge interface
+- `accessibility.go`: AXUIElement API wrapper
+- `screen.go`: Screen bounds and cursor operations
+- `mouse.go`: Mouse event synthesis
+
+<Warning>
+  The bridge code uses `//go:build darwin` tags and must never be imported by non-darwin code.
+</Warning>
+
+### Adapter
+
+An **Adapter** is a concrete implementation of a Port interface. Adapters translate between the abstract port interface and platform-specific APIs.
+
+**Example**: `internal/core/infra/accessibility/adapter.go`
+
+```go
+type Adapter struct {
+    systemPort ports.SystemPort
+    cache      *Cache
+    config     *config.Config
+}
+
+func (a *Adapter) ClickableElements(ctx context.Context, filter ports.ElementFilter) ([]*element.Element, error) {
+    // Implementation using platform-specific bridge
+}
+```
+
+### Port
+
+A **Port** is an interface definition that describes a system capability without specifying implementation details.
+
+**Example**: `internal/core/ports/accessibility.go`
+
+```go
+type AccessibilityPort interface {
+    HealthCheck
+    ElementDiscovery
+    ActionExecution
+    ApplicationInfo
+}
+```
+
+## The "One Rule"
+
+Neru enforces a critical architectural constraint:
+
+<Warning>
+  **Non-darwin-tagged code must never import `internal/core/infra/platform/darwin`.**
+</Warning>
+
+This rule is enforced by `golangci-lint` using `depguard` and ensures:
+- Clean separation between platform-specific and shared code
+- No accidental CGo imports on non-macOS builds
+- Cross-platform compilation without darwin dependencies
+
+### How It Works
+
+The **Platform Factory** pattern (`internal/core/infra/platform/factory.go`) provides platform-specific implementations without polluting shared code:
+
+```go
+// factory.go (shared)
+package platform
+
+// NewSystemPort is defined in build-tagged files
+```
+
+```go
+// factory_darwin.go (macOS only)
+//go:build darwin
+
+package platform
+
+import "github.com/y3owk1n/neru/internal/core/infra/platform/darwin"
+
+func NewSystemPort() (ports.SystemPort, error) {
+    return darwin.NewSystemAdapter(), nil
+}
+```
+
+```go
+// factory_linux.go (Linux only)
+//go:build linux
+
+package platform
+
+import "github.com/y3owk1n/neru/internal/core/infra/platform/linux"
+
+func NewSystemPort() (ports.SystemPort, error) {
+    return linux.NewSystemAdapter(), nil
+}
+```
+
+## Directory Structure
+
+```
+internal/
+├── app/                          # Application layer
+│   ├── services/                # Business logic orchestration
+│   ├── modes/                   # Navigation modes
+│   ├── components/              # UI components
+│   ├── app.go                   # Application lifecycle
+│   ├── app_initialization.go    # Dependency wiring
+│   └── ipc_controller.go        # IPC communication
+├── cli/                         # CLI commands
+├── config/                      # Configuration management
+├── core/                        # Core domain and infrastructure
+│   ├── domain/                  # Pure business logic
+│   │   ├── hint/               # Hint generation
+│   │   ├── grid/               # Grid calculations
+│   │   ├── element/            # Element representation
+│   │   └── action/             # Action definitions
+│   ├── ports/                   # Interface contracts
+│   │   ├── accessibility.go    # Accessibility port
+│   │   ├── overlay.go          # Overlay port
+│   │   ├── system.go           # System port
+│   │   └── config.go           # Config port
+│   ├── infra/                   # Concrete implementations
+│   │   ├── accessibility/      # Accessibility adapter
+│   │   ├── overlay/            # Overlay adapter
+│   │   ├── hotkeys/            # Hotkey management
+│   │   ├── eventtap/           # Event interception
+│   │   └── platform/           # OS-specific code
+│   │       ├── darwin/         # macOS implementations
+│   │       ├── linux/          # Linux implementations
+│   │       └── windows/        # Windows implementations
+│   └── errors/                  # Error handling
+└── ui/                          # Presentation layer
+    └── coordinates/            # Coordinate transformations
+```
+
+## Key Components
+
+### Modes System
+
+**Handler** (`internal/app/modes/handler.go`) is the central coordinator for all modes:
+
+```go
+type Handler struct {
+    modes       map[domain.Mode]Mode
+    activeMode  Mode
+    // ... services and dependencies
+}
+```
+
+The handler:
+- Routes keyboard events to the active mode
+- Manages mode transitions
+- Coordinates with services (HintService, GridService, ActionService)
+- Handles action execution
+
+### Accessibility System
+
+**Components**:
+1. **Port**: `internal/core/ports/accessibility.go` - Interface definition
+2. **Adapter**: `internal/core/infra/accessibility/adapter.go` - Go implementation
+3. **Bridge**: `internal/core/infra/platform/darwin/accessibility.go` - Native bridge
+
+**Flow**: Service → Adapter → Platform Bridge → macOS AXUIElement API
+
+### Overlay System
+
+**Components**:
+1. **Port**: `internal/core/ports/overlay.go` - Interface definition
+2. **Factory**: `internal/app/components/overlayutil/factory_darwin.go` - Component creation
+3. **Bridge**: Platform-specific window rendering
+
+**Supported overlays**:
+- Hint labels (`ShowHints`)
+- Grid overlays (`ShowGrid`)
+- Mode indicators (`DrawModeIndicator`)
+
+### Hotkeys & Event Tap
+
+**Hotkeys** (`internal/core/infra/hotkeys/`):
+- Global hotkey registration
+- Platform-specific implementations (`manager_darwin.go`, `manager_linux.go`)
+
+**Event Tap** (`internal/core/infra/eventtap/`):
+- Low-level keyboard event interception
+- Filters and dispatches events to the mode handler
+- Uses `CGEventTap` on macOS
+
+### IPC Communication
+
+**IPC Controller** (`internal/app/ipc_controller.go`):
+- Unix domain socket server
+- Routes CLI commands to the running daemon
+- Commands: `hints`, `grid`, `scroll`, `stop`, etc.
+
+**Flow**: CLI command → Unix socket → IPC controller → Mode activation
+
+## Cross-Platform Design
+
+### Platform Isolation Principles
+
+<Steps>
+  <Step title="Shared Business Logic">
+    All core logic (hint generation, grid calculations, mode transitions) is written in pure Go and resides in `internal/core/domain` and `internal/app/services`.
+  </Step>
+  
+  <Step title="Platform Abstraction">
+    System capabilities are defined as interfaces (Ports) in `internal/core/ports`. Concrete implementations (Adapters) reside in `internal/core/infra`.
+  </Step>
+  
+  <Step title="Build Tag Separation">
+    OS-specific files use Go build tags (e.g., `//go:build darwin`) to ensure they are only compiled for the target platform.
+  </Step>
+  
+  <Step title="Factory Pattern">
+    The platform factory (`internal/core/infra/platform/factory.go`) provides the correct implementation at runtime without exposing darwin imports to non-darwin code.
+  </Step>
+</Steps>
+
+## Data Flow
+
+### Input Event Propagation
+
+<Steps>
+  <Step title="OS Level">
+    Operating system generates keyboard event → `CGEventTap` captures (macOS)
+  </Step>
+  
+  <Step title="Infrastructure Level">
+    Event tap adapter (`internal/core/infra/eventtap/adapter.go`) receives event → Dispatches to application
+  </Step>
+  
+  <Step title="Application Level">
+    Handler (`internal/app/modes/handler.go`) receives key → Routes to active mode
+  </Step>
+  
+  <Step title="Mode Processing">
+    Mode processes key (`HandleKey`) → Calls service methods
+  </Step>
+  
+  <Step title="Service Execution">
+    Service (e.g., `HintService`) performs business logic → Calls adapter methods
+  </Step>
+  
+  <Step title="Platform Execution">
+    Adapter calls platform bridge → Native API executes action
+  </Step>
+</Steps>
+
+### Overlay Rendering Flow
+
+<Steps>
+  <Step title="Mode Request">
+    Mode calls `ShowHints()` or `ShowGrid()` on overlay port
+  </Step>
+  
+  <Step title="Adapter Processing">
+    Overlay adapter prepares rendering data → Transforms coordinates
+  </Step>
+  
+  <Step title="Bridge Rendering">
+    CGo bridge calls Objective-C → Creates native Cocoa windows
+  </Step>
+  
+  <Step title="Display">
+    Native windows rendered on screen → GPU-accelerated, flicker-free
+  </Step>
+</Steps>
+
+## Coordinate Systems
+
+Neru uses a **global top-left (0,0) coordinate system** for all shared logic.
+
+<Note>
+  - **Origin**: (0,0) is the top-left corner of the primary display
+  - **Y-Axis**: Increases downwards
+  - **Units**: Screen pixels (unscaled)
+</Note>
+
+### macOS Coordinate Inversion
+
+macOS Cocoa uses a **bottom-left (0,0)** coordinate system where Y increases upwards. The darwin platform adapter (`internal/core/infra/platform/darwin/screen.go`) handles coordinate inversion before passing to Go code.
+
+**Conversion**: `y_go = screen_height - y_cocoa`
+
+## Error Handling
+
+Neru uses a custom error package (`internal/core/errors/errors.go`) for structured error handling.
+
+### Error Codes
+
+```go
+const (
+    CodeNotSupported    // Platform feature not implemented
+    CodePermissionDenied // Missing accessibility permissions
+    CodeInvalidInput     // Invalid user input
+    // ...
+)
+```
+
+### Graceful Degradation
+
+When a platform-specific feature is not yet implemented, adapters return `CodeNotSupported`:
+
+```go
+return derrors.New(derrors.CodeNotSupported, "feature X not yet implemented on linux")
+```
+
+Callers use `IsNotSupported(err)` to handle missing features gracefully.
+
+## Performance Considerations
+
+<Accordion title="Event Tap Latency">
+  The event tap callback is kept extremely lean to prevent system-wide keyboard lag. Heavy processing is deferred to Go routines.
+</Accordion>
+
+<Accordion title="Accessibility Caching">
+  Querying the macOS Accessibility API is expensive. Neru implements intelligent caching in `internal/core/infra/accessibility/cache.go` to minimize IPC overhead.
+</Accordion>
+
+<Accordion title="Native Rendering">
+  Overlays are rendered using native Cocoa APIs for GPU-accelerated, flicker-free UI.
+</Accordion>
+
+## Security Architecture
+
+<Steps>
+  <Step title="Secure Input Detection">
+    Neru detects when "Secure Input" is enabled (e.g., password field focus) and automatically suspends the event tap to prevent unintended key logging.
+  </Step>
+  
+  <Step title="Permission Management">
+    Requires Accessibility permissions on macOS. Only requests the minimum set needed for UI interaction.
+  </Step>
+  
+  <Step title="IPC Security">
+    Unix domain sockets are created with restricted file permissions, ensuring only the current user can communicate with the daemon.
+  </Step>
+</Steps>
+
+## Related Documentation
+
+<CardGroup cols={2}>
+  <Card title="Cross-Platform Guide" icon="globe" href="/advanced/cross-platform">
+    Learn about platform support and porting
+  </Card>
+  <Card title="Development Guide" icon="code" href="/advanced/development">
+    Set up your development environment
+  </Card>
+  <Card title="Contributing" icon="hand" href="/advanced/contributing">
+    Contribute to Neru development
+  </Card>
+  <Card title="Configuration Reference" icon="gear" href="/api/config/hotkeys">
+    Complete configuration options
+  </Card>
+</CardGroup>

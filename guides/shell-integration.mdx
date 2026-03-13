@@ -1,0 +1,637 @@
+---
+title: Shell Integration
+description: Shell completions, hotkey managers, and automation scripts
+---
+
+Integrate Neru with your shell environment, external hotkey managers, and automation workflows.
+
+## Shell Completions
+
+Neru provides built-in completion support for bash, zsh, and fish shells.
+
+### Bash
+
+Install bash completions:
+
+```bash
+# Generate and install completions
+neru completion bash > /usr/local/etc/bash_completion.d/neru
+
+# Or for user-specific installation
+mkdir -p ~/.local/share/bash-completion/completions
+neru completion bash > ~/.local/share/bash-completion/completions/neru
+
+# Restart shell
+exec bash
+```
+
+**For Homebrew-installed bash:**
+
+```bash
+neru completion bash > $(brew --prefix)/etc/bash_completion.d/neru
+exec bash
+```
+
+### Zsh
+
+Install zsh completions:
+
+```bash
+# Generate and install completions
+mkdir -p ~/.config/zsh/completions
+neru completion zsh > ~/.config/zsh/completions/_neru
+
+# Add to fpath in ~/.zshrc (if not already present)
+echo 'fpath=(~/.config/zsh/completions $fpath)' >> ~/.zshrc
+echo 'autoload -Uz compinit && compinit' >> ~/.zshrc
+
+# Restart shell
+exec zsh
+```
+
+**Alternative location:**
+
+```bash
+# Install to zsh site-functions
+neru completion zsh > "${fpath[1]}/_neru"
+exec zsh
+```
+
+### Fish
+
+Install fish completions:
+
+```bash
+# Generate and install completions
+mkdir -p ~/.config/fish/completions
+neru completion fish > ~/.config/fish/completions/neru.fish
+
+# Completions load automatically in new shell sessions
+```
+
+<Tip>
+After installing completions, type `neru <TAB>` to see available commands and options.
+</Tip>
+
+## External Hotkey Managers
+
+Use external tools like skhd or Karabiner-Elements for more complex hotkey setups.
+
+### Integration with skhd
+
+[skhd](https://github.com/koekeishiya/skhd) is a simple hotkey daemon for macOS.
+
+**Install skhd:**
+
+```bash
+# Via Homebrew
+brew install koekeishiya/formulae/skhd
+
+# Start service
+brew services start skhd
+```
+
+**Configure skhd** (`~/.config/skhd/skhdrc`):
+
+```bash
+# Navigation modes
+ctrl - f : neru hints
+ctrl - g : neru grid
+ctrl - c : neru recursive_grid
+ctrl - s : neru scroll
+
+# With actions
+ctrl + shift - f : neru hints --action left_click
+ctrl + shift - r : neru hints --action right_click
+
+# Direct actions
+ctrl + shift - l : neru action left_click
+ctrl + shift - m : neru action right_click
+ctrl + shift - c : neru action middle_click
+
+# Daemon control
+ctrl + alt - p : neru stop   # Pause
+ctrl + alt - r : neru start  # Resume
+ctrl + alt - i : neru idle   # Cancel mode
+
+# Screen sharing toggle
+ctrl + alt - h : neru toggle-screen-share
+```
+
+**Disable Neru's built-in hotkeys** to avoid conflicts:
+
+```toml
+# ~/.config/neru/config.toml
+[hotkeys]
+# Leave empty to disable built-in hotkeys
+```
+
+**Reload skhd config:**
+
+```bash
+skhd --reload
+```
+
+<Tip>
+skhd provides more flexibility than Neru's built-in hotkeys: global key remapping, app-specific bindings, and complex modifiers.
+</Tip>
+
+### Integration with Karabiner-Elements
+
+[Karabiner-Elements](https://karabiner-elements.pqrs.org/) is a powerful keyboard customizer for macOS.
+
+**Install Karabiner-Elements:**
+
+```bash
+brew install --cask karabiner-elements
+```
+
+**Configure Karabiner** (via GUI or `~/.config/karabiner/karabiner.json`):
+
+Example: Map `Caps Lock` to activate hints mode:
+
+```json
+{
+  "profiles": [
+    {
+      "complex_modifications": {
+        "rules": [
+          {
+            "description": "Caps Lock to Neru Hints",
+            "manipulators": [
+              {
+                "from": {
+                  "key_code": "caps_lock"
+                },
+                "to": [
+                  {
+                    "shell_command": "neru hints"
+                  }
+                ],
+                "type": "basic"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+<Note>
+Karabiner-Elements requires manual JSON editing for shell commands. Consider using skhd for simpler Neru integration.
+</Note>
+
+## Health Check and Monitoring
+
+Automate health checks for Neru daemon.
+
+### Basic Health Check
+
+```bash
+#!/bin/bash
+# check_neru.sh
+# Check Neru daemon status
+
+if neru status &>/dev/null; then
+    echo "✓ Neru is running"
+    exit 0
+else
+    echo "✗ Neru is not running"
+    exit 1
+fi
+```
+
+### Comprehensive Health Check
+
+```bash
+#!/bin/bash
+# neru_health.sh
+# Comprehensive Neru health check
+
+ERRORS=0
+
+# Check daemon
+if neru status &>/dev/null; then
+    echo "✓ Daemon is running"
+else
+    echo "✗ Daemon is not running"
+    ((ERRORS++))
+fi
+
+# Check accessibility permissions
+if neru doctor 2>&1 | grep -q "Accessibility permissions granted"; then
+    echo "✓ Accessibility permissions OK"
+else
+    echo "✗ Accessibility permissions missing"
+    ((ERRORS++))
+fi
+
+# Check config validity
+if neru config dump &>/dev/null; then
+    echo "✓ Config is valid"
+else
+    echo "✗ Config has errors"
+    ((ERRORS++))
+fi
+
+# Check log for recent errors
+if grep -q "ERROR" ~/Library/Logs/neru/app.log 2>/dev/null; then
+    echo "⚠️ Recent errors in log"
+else
+    echo "✓ No recent errors"
+fi
+
+if [ $ERRORS -eq 0 ]; then
+    echo "\n✓ All checks passed"
+    exit 0
+else
+    echo "\n✗ $ERRORS check(s) failed"
+    exit 1
+fi
+```
+
+**Run health check:**
+
+```bash
+chmod +x neru_health.sh
+./neru_health.sh
+```
+
+### Automated Daemon Restart
+
+```bash
+#!/bin/bash
+# restart_neru.sh
+# Restart Neru if not running
+
+if ! neru status &>/dev/null; then
+    echo "Neru is not running. Starting..."
+    
+    # Force kill any stale processes
+    pkill -9 neru
+    
+    # Remove stale socket
+    rm -f /var/folders/*/*/T/neru.sock
+    
+    # Start daemon
+    neru launch
+    
+    sleep 2
+    
+    # Verify started
+    if neru status &>/dev/null; then
+        echo "Neru started successfully"
+    else
+        echo "Failed to start Neru"
+        exit 1
+    fi
+else
+    echo "Neru is already running"
+fi
+```
+
+### Cron Job for Monitoring
+
+```bash
+# Add to crontab (crontab -e)
+# Check Neru every 5 minutes and restart if needed
+*/5 * * * * /path/to/restart_neru.sh >> /tmp/neru_monitor.log 2>&1
+```
+
+<Warning>
+Cron may not have GUI access. For macOS, use launchd instead.
+</Warning>
+
+### Launchd Monitoring Agent
+
+Create a launchd agent to monitor Neru:
+
+```xml
+<!-- ~/Library/LaunchAgents/com.neru.monitor.plist -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.neru.monitor</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/path/to/restart_neru.sh</string>
+    </array>
+    <key>StartInterval</key>
+    <integer>300</integer>
+    <key>RunAtLoad</key>
+    <true/>
+</dict>
+</plist>
+```
+
+**Load agent:**
+
+```bash
+launchctl load ~/Library/LaunchAgents/com.neru.monitor.plist
+```
+
+## Automation Scripts
+
+### Toggle Daemon Script
+
+```bash
+#!/bin/bash
+# toggle_neru.sh
+# Toggle Neru running/disabled state
+
+STATUS=$(neru status 2>/dev/null | grep "Status:" | awk '{print $2}')
+
+if [ "$STATUS" = "running" ]; then
+    neru stop
+    echo "Neru disabled"
+else
+    neru start
+    echo "Neru enabled"
+fi
+```
+
+**Bind to hotkey with skhd:**
+
+```bash
+# ~/.config/skhd/skhdrc
+ctrl + alt - t : /path/to/toggle_neru.sh
+```
+
+### Workspace-Specific Config
+
+Switch Neru config based on current workspace:
+
+```bash
+#!/bin/bash
+# switch_neru_config.sh
+# Load different config for different workspaces
+
+WORKSPACE=$(yabai -m query --spaces --space | jq -r '.label')
+
+case $WORKSPACE in
+    "code")
+        CONFIG="$HOME/.config/neru/config-code.toml"
+        ;;
+    "design")
+        CONFIG="$HOME/.config/neru/config-design.toml"
+        ;;
+    *)
+        CONFIG="$HOME/.config/neru/config.toml"
+        ;;
+esac
+
+# Restart with specific config
+pkill neru
+neru launch --config "$CONFIG"
+```
+
+### App-Specific Automation
+
+Activate specific modes based on active application:
+
+```bash
+#!/bin/bash
+# app_specific_mode.sh
+# Activate modes based on frontmost app
+
+APP=$(osascript -e 'tell application "System Events" to get name of first application process whose frontmost is true')
+
+case $APP in
+    "Safari"|"Google Chrome"|"Firefox")
+        # Browser: activate hints for link clicking
+        neru hints
+        ;;
+    "Code"|"Visual Studio Code"|"Xcode")
+        # Code editor: activate scroll mode
+        neru scroll
+        ;;
+    "Figma"|"Sketch"|"Adobe Illustrator")
+        # Design tools: activate grid for precise positioning
+        neru grid
+        ;;
+    *)
+        # Default: do nothing
+        ;;
+esac
+```
+
+**Bind to app switch with Hammerspoon:**
+
+```lua
+-- ~/.hammerspoon/init.lua
+function applicationWatcher(appName, eventType, appObject)
+    if eventType == hs.application.watcher.activated then
+        os.execute("/path/to/app_specific_mode.sh")
+    end
+end
+
+appWatcher = hs.application.watcher.new(applicationWatcher)
+appWatcher:start()
+```
+
+### Automated Click Sequences
+
+```bash
+#!/bin/bash
+# click_sequence.sh
+# Automate repetitive clicking tasks
+
+# Array of positions to click
+POSITIONS=(
+    "500 300"
+    "800 400"
+    "1000 500"
+)
+
+for POS in "${POSITIONS[@]}"; do
+    X=$(echo $POS | awk '{print $1}')
+    Y=$(echo $POS | awk '{print $2}')
+    
+    echo "Clicking at ($X, $Y)"
+    neru action move_mouse --x $X --y $Y
+    neru action left_click
+    
+    sleep 1
+done
+
+echo "Sequence complete"
+```
+
+### Batch Screenshot Tool
+
+```bash
+#!/bin/bash
+# batch_screenshot.sh
+# Take screenshots of multiple screen regions
+
+REGIONS=(
+    "0 0 800 600"
+    "800 0 800 600"
+    "0 600 800 600"
+)
+
+for i in "${!REGIONS[@]}"; do
+    REGION=${REGIONS[$i]}
+    read X Y W H <<< $REGION
+    
+    # Move to center of region
+    CENTER_X=$((X + W/2))
+    CENTER_Y=$((Y + H/2))
+    
+    neru action move_mouse --x $CENTER_X --y $CENTER_Y
+    
+    # Take screenshot (macOS)
+    screencapture -R"$X,$Y,$W,$H" "screenshot_$i.png"
+    
+    echo "Screenshot $i saved"
+done
+```
+
+## Integration with Window Managers
+
+### yabai Integration
+
+Integrate Neru with [yabai](https://github.com/koekeishiya/yabai) window manager:
+
+```bash
+# ~/.config/yabai/yabairc
+
+# Activate hints when focusing a window
+yabai -m signal --add event=window_focused action="neru hints"
+
+# Activate scroll mode in terminal windows
+yabai -m signal --add event=application_activated app="^Terminal$" action="neru scroll"
+```
+
+### Aerospace Integration
+
+Integrate Neru with [Aerospace](https://github.com/nikitabobko/AeroSpace) window manager:
+
+```bash
+# Bind Neru commands to Aerospace hotkeys
+# (via skhd or direct Aerospace config)
+```
+
+## Shell Aliases and Functions
+
+Add convenient aliases to your shell config.
+
+### Bash/Zsh Aliases
+
+```bash
+# ~/.bashrc or ~/.zshrc
+
+# Navigation shortcuts
+alias nh='neru hints'
+alias ng='neru grid'
+alias nr='neru recursive_grid'
+alias ns='neru scroll'
+
+# Action shortcuts
+alias nlc='neru action left_click'
+alias nrc='neru action right_click'
+alias nmc='neru action middle_click'
+
+# Daemon control
+alias nst='neru status'
+alias nstart='neru launch'
+alias nstop='pkill neru'
+alias nrestart='pkill neru && neru launch'
+
+# Health check
+alias ndoc='neru doctor'
+```
+
+### Advanced Shell Functions
+
+```bash
+# ~/.bashrc or ~/.zshrc
+
+# Quick hint mode with action
+nha() {
+    neru hints --action "${1:-left_click}"
+}
+
+# Usage:
+# nha              # left_click (default)
+# nha right_click  # right_click
+
+# Move and click
+nclick() {
+    if [ $# -lt 2 ]; then
+        echo "Usage: nclick <x> <y> [action]"
+        return 1
+    fi
+    
+    local x=$1
+    local y=$2
+    local action=${3:-left_click}
+    
+    neru action move_mouse --x $x --y $y
+    neru action $action
+}
+
+# Usage:
+# nclick 500 300              # left_click at (500,300)
+# nclick 800 400 right_click  # right_click at (800,400)
+
+# Center click
+ncenter() {
+    neru action move_mouse --center
+    neru action "${1:-left_click}"
+}
+
+# Usage:
+# ncenter              # left_click at center
+# ncenter right_click  # right_click at center
+```
+
+### Fish Functions
+
+```fish
+# ~/.config/fish/functions/nh.fish
+function nh
+    neru hints $argv
+end
+
+# ~/.config/fish/functions/nclick.fish
+function nclick
+    if test (count $argv) -lt 2
+        echo "Usage: nclick <x> <y> [action]"
+        return 1
+    end
+    
+    set x $argv[1]
+    set y $argv[2]
+    set action (test -n "$argv[3]"; and echo $argv[3]; or echo "left_click")
+    
+    neru action move_mouse --x $x --y $y
+    neru action $action
+end
+```
+
+## Environment Variables
+
+Neru respects standard XDG environment variables for config location:
+
+```bash
+# ~/.bashrc or ~/.zshrc
+
+# Set custom config directory
+export XDG_CONFIG_HOME="$HOME/.config"
+
+# Neru will look for config at:
+# $XDG_CONFIG_HOME/neru/config.toml
+# ~/.config/neru/config.toml (if XDG_CONFIG_HOME not set)
+```
+
+## Next Steps
+
+- [CLI Usage](/guides/cli-usage) - Complete CLI reference
+- [Troubleshooting](/guides/troubleshooting) - Common issues and solutions
+- [Configuration Reference](/concepts/configuration-overview) - Complete config options
+- [Hints Mode](/guides/hints-mode) - Element-based navigation

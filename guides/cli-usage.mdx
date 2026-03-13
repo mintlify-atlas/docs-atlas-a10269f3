@@ -1,0 +1,671 @@
+---
+title: CLI Usage
+description: Complete command-line interface reference for Neru daemon and navigation commands
+---
+
+Neru provides a comprehensive CLI for controlling the daemon, automating workflows, and scripting navigation.
+
+## Overview
+
+The Neru CLI communicates with the daemon via IPC (Inter-Process Communication) using Unix domain sockets. This enables:
+
+- **Fast, reliable communication** - Sockets in OS temp directory
+- **Multiple concurrent commands** - No blocking
+- **Proper error handling** - Structured error codes
+- **Scriptable workflows** - Automate with shell scripts
+
+<Tip>
+The daemon must be running for CLI commands to work. Start it with `neru launch`.
+</Tip>
+
+## Quick Reference
+
+```bash
+# Daemon control
+neru launch              # Start daemon
+neru status              # Check status
+neru start               # Resume paused daemon
+neru stop                # Pause daemon
+neru idle                # Cancel active mode
+
+# Navigation
+neru hints               # Start hint mode
+neru grid                # Start grid mode
+neru recursive_grid      # Start recursive-grid mode
+neru scroll              # Start scroll mode
+
+# Actions
+neru action left_click   # Click at cursor
+neru action right_click  # Right-click at cursor
+neru action move_mouse --x 500 --y 300  # Move to coordinates
+
+# Service management
+neru services install    # Install launchd service
+neru services status     # Check service status
+
+# Configuration
+neru config reload       # Reload config
+neru config dump         # Show loaded config
+
+# Utilities
+neru doctor              # Health check
+neru --version           # Version info
+neru toggle-screen-share # Toggle overlay in screen sharing
+```
+
+## Daemon Control
+
+### Launch Daemon
+
+Start the Neru daemon:
+
+```bash
+# Start with default config
+neru launch
+
+# Start with custom config file
+neru launch --config /path/to/config.toml
+neru launch -c ./configs/custom-config.toml
+```
+
+**Options:**
+- `--config, -c` - Path to custom config file
+- `--timeout` - IPC timeout in seconds (default: 5)
+
+<Note>
+The daemon runs in the background and handles hotkeys, navigation modes, and IPC communication.
+</Note>
+
+### Start/Stop/Idle
+
+```bash
+# Resume paused daemon
+neru start
+
+# Pause daemon (keeps running, disables modes)
+neru stop
+
+# Cancel active mode (return to idle)
+neru idle
+```
+
+**Use cases:**
+- `stop` - Temporarily disable Neru without quitting
+- `idle` - Exit current navigation mode
+- `start` - Re-enable after `stop`
+
+### Status
+
+Check daemon status and current mode:
+
+```bash
+neru status
+```
+
+**Output:**
+```
+Neru is running
+Status: running
+Mode: hints
+```
+
+**Status values:** `running`, `disabled`
+**Mode values:** `idle`, `hints`, `grid`, `recursive_grid`, `scroll`
+
+## Navigation Commands
+
+All navigation modes can be activated via CLI or hotkey.
+
+### Basic Navigation
+
+```bash
+# Show clickable hints on UI elements
+neru hints
+
+# Show coordinate grid for screen
+neru grid
+
+# Recursive cell-based navigation
+neru recursive_grid
+
+# Vim-style scrolling
+neru scroll
+```
+
+### Navigation with --action Flag
+
+Perform an action automatically when a location is selected:
+
+```bash
+# Left-click via hints
+neru hints --action left_click
+
+# Right-click via hints
+neru hints --action right_click
+
+# Middle-click via hints
+neru hints --action middle_click
+
+# Left-click via grid
+neru grid --action left_click
+
+# Left-click via recursive-grid
+neru recursive_grid --action left_click
+```
+
+<Tip>
+The `--action` flag is most useful for **hints mode**. For grid and recursive-grid, consider using `auto_exit_actions` in config instead.
+</Tip>
+
+### How --action Works
+
+<Accordion title="Hints Mode">
+When you satisfy the label (e.g., "aa"), the action executes immediately.
+
+```bash
+neru hints --action right_click
+# Type "aa" -> cursor moves and right-clicks automatically
+```
+</Accordion>
+
+<Accordion title="Grid Mode">
+Action executes after the last sublayer selection (3×3 subgrid).
+
+```bash
+neru grid --action left_click
+# Type "bd" (cell) -> "bb" (subgrid) -> left-click executes
+```
+
+<Warning>
+Grid mode with `--action` can feel awkward. Consider using `auto_exit_actions` config instead.
+</Warning>
+</Accordion>
+
+<Accordion title="Recursive Grid Mode">
+Action executes after the last recursion depth is reached.
+
+```bash
+neru recursive_grid --action left_click
+# Press "u" -> "k" -> "i" -> ... -> left-click when min size reached
+```
+</Accordion>
+
+<Accordion title="Scroll Mode">
+Scroll mode does **not** support the `--action` flag (no selection point).
+</Accordion>
+
+## Action Commands
+
+Perform immediate actions at current cursor position.
+
+### Click Actions
+
+```bash
+# Left click
+neru action left_click
+
+# Right click
+neru action right_click
+
+# Middle click
+neru action middle_click
+```
+
+### Press and Hold
+
+```bash
+# Press and hold mouse button
+neru action mouse_down
+
+# Release mouse button
+neru action mouse_up
+```
+
+**Use case:** Drag and drop operations
+
+```bash
+neru action mouse_down
+# Move cursor to target position
+neru action mouse_up
+```
+
+### Mouse Movement
+
+<CodeGroup>
+```bash Absolute Coordinates
+# Move to screen coordinates (500, 300)
+neru action move_mouse --x 500 --y 300
+```
+
+```bash Center of Screen
+# Move to center of active screen
+neru action move_mouse --center
+
+# Center with offset (both axes)
+neru action move_mouse --center --x 50 --y -30
+
+# Center with single-axis offset (omitted axis defaults to 0)
+neru action move_mouse --center --x 100
+```
+
+```bash Relative Movement
+# Move 10 pixels right, 5 pixels up from current position
+neru action move_mouse_relative --dx 10 --dy -5
+```
+</CodeGroup>
+
+**Movement options:**
+- `move_mouse --x <pixels> --y <pixels>` - Absolute screen coordinates
+- `move_mouse --center` - Center of active screen
+- `move_mouse --center --x <pixels> --y <pixels>` - Center with offset (each optional)
+- `move_mouse_relative --dx <pixels> --dy <pixels>` - Delta from current position
+
+## Service Management
+
+Manage Neru as a system service for automatic startup.
+
+### macOS (launchd)
+
+```bash
+# Install and load launchd service
+neru services install
+
+# Check service status
+neru services status
+```
+
+**Installation location:** `~/Library/LaunchAgents/com.y3owk1n.neru.plist`
+
+<Note>
+After installation, Neru starts automatically on login.
+</Note>
+
+### Linux (systemd)
+
+Planned - will support systemctl for managing user services.
+
+### Windows (Task Scheduler)
+
+Planned - will support Task Scheduler for auto-start on login.
+
+<Tip>
+If using Nix, Homebrew, or other package managers, use their respective service managers instead (e.g., `home-manager` for Nix).
+</Tip>
+
+## Screen Sharing Control
+
+Control overlay visibility during screen sharing (Zoom, Google Meet, OBS, etc.).
+
+```bash
+# Toggle overlay visibility in screen sharing
+neru toggle-screen-share
+```
+
+**Behavior:**
+- When toggled to **hidden**, overlay doesn't appear in shared screens but remains visible locally
+- When toggled to **visible**, overlay appears normally in screen sharing
+- State resets to **visible** on Neru restart
+- Also accessible via system tray menu: "Screen Share: Visible/Hidden"
+
+<Warning>
+This feature uses macOS `NSWindow.sharingType` API (deprecated). Effectiveness varies:
+- **macOS 14 and earlier:** Works reliably with all apps
+- **macOS 15.4+:** Limited effectiveness with ScreenCaptureKit-based apps
+- Always test with your specific screen sharing software
+</Warning>
+
+## Configuration Commands
+
+### Reload Configuration
+
+Reload config without restarting daemon:
+
+```bash
+neru config reload
+```
+
+<Note>
+Most config changes take effect immediately. Some (like `systray.enabled`) require a full restart.
+</Note>
+
+### Dump Configuration
+
+Show currently loaded configuration:
+
+```bash
+neru config dump
+```
+
+**Output:** Full TOML configuration currently active.
+
+## Health Check
+
+Run component health check:
+
+```bash
+neru doctor
+```
+
+**Checks:**
+- Daemon running status
+- Accessibility permissions
+- Config file validity
+- IPC socket connectivity
+
+**Output example:**
+```
+✓ Daemon is running
+✓ Accessibility permissions granted
+✓ Config file valid
+✓ IPC socket connected
+```
+
+## Shell Completions
+
+Generate shell completions for bash, zsh, or fish.
+
+<CodeGroup>
+```bash Bash
+neru completion bash > /usr/local/etc/bash_completion.d/neru
+```
+
+```bash Zsh
+neru completion zsh > "${fpath[1]}/_neru"
+```
+
+```bash Fish
+neru completion fish > ~/.config/fish/completions/neru.fish
+```
+</CodeGroup>
+
+After installing completions, restart your shell:
+
+```bash
+exec $SHELL
+```
+
+## Scripting Examples
+
+### Toggle Daemon
+
+```bash
+#!/bin/bash
+# Toggle Neru running/disabled state
+STATUS=$(neru status | grep "Status:" | awk '{print $2}')
+if [ "$STATUS" = "running" ]; then
+    neru stop
+else
+    neru start
+fi
+```
+
+### Status Check for Scripts
+
+```bash
+#!/bin/bash
+# Check if Neru is running
+if neru status &>/dev/null; then
+    echo "Neru is running"
+else
+    echo "Neru is not running"
+    exit 1
+fi
+```
+
+### Automated Clicking Workflow
+
+```bash
+#!/bin/bash
+# Click at specific screen positions
+
+# Move to position 1 and click
+neru action move_mouse --x 500 --y 300
+neru action left_click
+
+sleep 1
+
+# Move to position 2 and click
+neru action move_mouse --x 800 --y 400
+neru action left_click
+```
+
+### Drag and Drop Automation
+
+```bash
+#!/bin/bash
+# Drag from position A to position B
+
+# Move to start position
+neru action move_mouse --x 100 --y 100
+
+# Press and hold
+neru action mouse_down
+
+sleep 0.5
+
+# Move to end position
+neru action move_mouse --x 500 --y 500
+
+# Release
+neru action mouse_up
+```
+
+### External Hotkeys with skhd
+
+Integrate Neru with external hotkey managers:
+
+```bash
+# ~/.config/skhd/skhdrc
+
+# Navigation modes
+ctrl - f : neru hints
+ctrl - g : neru grid
+ctrl - c : neru recursive_grid
+ctrl - s : neru scroll
+
+# With actions
+ctrl + shift - f : neru hints --action left_click
+ctrl + shift - r : neru hints --action right_click
+
+# Direct actions
+ctrl + shift - l : neru action left_click
+ctrl + shift - m : neru action right_click
+
+# Daemon control
+ctrl + alt - d : neru stop
+ctrl + alt - e : neru start
+```
+
+Then disable Neru's built-in hotkeys:
+
+```toml
+# config.toml
+[hotkeys]
+# Leave empty to disable built-in hotkeys
+```
+
+## Technical Details
+
+### IPC Communication
+
+CLI and daemon communicate via Unix socket (typically `/var/folders/.../T/neru.sock`).
+
+**Request format (JSON):**
+```json
+{
+  "action": "hints",
+  "params": {},
+  "args": []
+}
+```
+
+**Response format (JSON):**
+```json
+{
+  "success": true,
+  "message": "OK",
+  "code": "OK"
+}
+```
+
+### Error Codes
+
+Structured error codes for scripting:
+
+| Code | Description |
+|------|-------------|
+| `OK` | Success |
+| `ERR_MODE_DISABLED` | Mode disabled in config |
+| `ERR_UNKNOWN_COMMAND` | Invalid command |
+| Connection errors | Daemon not running |
+
+**Checking exit codes:**
+
+```bash
+neru hints
+if [ $? -eq 0 ]; then
+    echo "Success"
+else
+    echo "Failed"
+fi
+```
+
+### Concurrency
+
+Multiple CLI commands can run concurrently. The daemon processes them sequentially in order.
+
+```bash
+# These run in parallel (non-blocking)
+neru status &
+neru config dump &
+wait
+```
+
+### Timeouts
+
+CLI commands have a default 5-second IPC timeout. Override with `--timeout`:
+
+```bash
+# Set 10-second timeout
+neru launch --timeout 10
+```
+
+## Log Monitoring
+
+View Neru logs for debugging:
+
+```bash
+# Real-time log monitoring
+tail -f ~/Library/Logs/neru/app.log
+
+# Search for errors
+grep ERROR ~/Library/Logs/neru/app.log
+
+# View last 100 lines
+tail -100 ~/Library/Logs/neru/app.log
+```
+
+## Troubleshooting CLI Commands
+
+### "Failed to connect to Neru daemon"
+
+Daemon not running.
+
+```bash
+# Start daemon
+neru launch
+
+# Check status
+neru status
+```
+
+### Command Hangs
+
+Daemon may be stuck.
+
+```bash
+# Force quit daemon
+pkill -9 neru
+
+# Restart
+neru launch
+```
+
+### Socket Permission Errors
+
+Stale socket file.
+
+```bash
+# Remove stale socket (path printed in logs)
+rm -f /var/folders/*/*/T/neru.sock
+
+# Restart daemon
+neru launch
+```
+
+### Commands Not Working
+
+Verify daemon is running:
+
+```bash
+neru status
+# If not running: neru launch
+```
+
+Check logs for errors:
+
+```bash
+tail -f ~/Library/Logs/neru/app.log
+```
+
+## Advanced Usage
+
+### Conditional Execution
+
+```bash
+# Only run if daemon is active
+neru status &>/dev/null && neru hints
+```
+
+### Mode-Specific Workflows
+
+```bash
+#!/bin/bash
+# Check current mode before action
+MODE=$(neru status | grep "Mode:" | awk '{print $2}')
+
+if [ "$MODE" = "hints" ]; then
+    echo "Already in hints mode"
+else
+    neru hints
+fi
+```
+
+### Error Handling
+
+```bash
+#!/bin/bash
+# Robust error handling
+
+if ! neru status &>/dev/null; then
+    echo "Error: Neru daemon not running"
+    echo "Starting daemon..."
+    neru launch
+    sleep 2
+fi
+
+if neru hints; then
+    echo "Hints mode activated"
+else
+    echo "Failed to activate hints mode"
+    exit 1
+fi
+```
+
+## Next Steps
+
+- [Shell Integration](/guides/shell-integration) - Completions and automation
+- [Hints Mode](/guides/hints-mode) - Element-based navigation
+- [Grid Mode](/guides/grid-mode) - Coordinate-based navigation
+- [Mouse Actions](/guides/mouse-actions) - Clicking and cursor control
+- [Configuration Reference](/concepts/configuration-overview) - Complete config options

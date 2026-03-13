@@ -1,0 +1,492 @@
+---
+title: Configuration Commands
+description: Manage and reload Neru configuration
+---
+
+Configuration commands allow you to dump the current configuration and reload it without restarting the daemon.
+
+## Overview
+
+All config commands are subcommands of `neru config`:
+
+```bash
+neru config <subcommand> [flags]
+```
+
+---
+
+## dump
+
+Dump the currently active configuration as JSON.
+
+### Syntax
+
+```bash
+neru config dump [flags]
+```
+
+### Description
+
+Prints the effective configuration that the daemon is currently using. This shows the merged result of defaults and your custom configuration file.
+
+### Flags
+
+<ParamField path="--timeout" type="integer" default="5">
+  IPC timeout in seconds
+</ParamField>
+
+### Usage Examples
+
+```bash
+# Dump current configuration
+neru config dump
+```
+
+### Output Format
+
+The output is formatted JSON with 2-space indentation:
+
+```json
+{
+  "general": {
+    "systray_enabled": true,
+    "check_updates": true
+  },
+  "hotkeys": {
+    "hints": "Cmd+H",
+    "grid": "Cmd+G",
+    "scroll": "Cmd+S",
+    "recursive_grid": "Cmd+R",
+    "toggle_status": "Cmd+Shift+P"
+  },
+  "hints": {
+    "enabled": true,
+    "characters": "asdfghjkl",
+    "font_size": 20,
+    "font_weight": "bold",
+    "padding": 4,
+    "border_radius": 4,
+    "background_color": "#FFD700",
+    "text_color": "#000000",
+    "border_color": "#FFD700",
+    "border_width": 2
+  },
+  "grid": {
+    "enabled": true,
+    "rows": 12,
+    "columns": 12,
+    "font_size": 16,
+    "background_color": "#FFD700",
+    "text_color": "#000000",
+    "auto_exit_actions": ["left_click", "right_click"]
+  },
+  "recursive_grid": {
+    "enabled": true,
+    "rows": 2,
+    "columns": 2,
+    "max_depth": 10,
+    "min_cell_size": 50,
+    "background_color": "rgba(255, 215, 0, 0.3)",
+    "border_color": "#FFD700",
+    "border_width": 2,
+    "key_bindings": {
+      "upper_left": ["u"],
+      "upper_right": ["i"],
+      "lower_left": ["j"],
+      "lower_right": ["k"],
+      "backtrack": ["Backspace", "Delete"],
+      "reset": [","],
+      "exit": ["Escape"]
+    }
+  },
+  "scroll": {
+    "key_bindings": {
+      "down": ["j"],
+      "up": ["k"],
+      "left": ["h"],
+      "right": ["l"],
+      "half_page_down": ["Ctrl+d"],
+      "half_page_up": ["Ctrl+u"],
+      "top": ["gg"],
+      "bottom": ["Shift+G"],
+      "exit": ["Escape"]
+    },
+    "scroll_amount": 40,
+    "half_page_fraction": 0.5
+  },
+  "logging": {
+    "level": "info",
+    "file": "~/Library/Logs/neru/app.log",
+    "max_size_mb": 10,
+    "max_backups": 3,
+    "max_age_days": 30
+  }
+}
+```
+
+### Use Cases
+
+- Verify configuration is loaded correctly
+- Check merged defaults and custom values
+- Export configuration for sharing
+- Debug configuration issues
+- Validate configuration structure
+
+### Piping and Processing
+
+```bash
+# Save to file
+neru config dump > current-config.json
+
+# Pretty print with jq
+neru config dump | jq
+
+# Extract specific section
+neru config dump | jq '.hints'
+
+# Check specific value
+neru config dump | jq '.hotkeys.hints'
+```
+
+### Prerequisites
+
+- Daemon must be running
+
+### Related Commands
+
+- [reload](#reload) - Reload configuration
+- [status](/api/commands/status#status) - Check daemon status
+
+---
+
+## reload
+
+Reload configuration from disk without restarting the daemon.
+
+### Syntax
+
+```bash
+neru config reload [flags]
+```
+
+### Description
+
+Reloads the configuration file and applies changes to the running daemon. This allows you to modify configuration without restarting Neru.
+
+### Flags
+
+<ParamField path="--timeout" type="integer" default="5">
+  IPC timeout in seconds
+</ParamField>
+
+### Usage Examples
+
+```bash
+# Reload configuration
+neru config reload
+```
+
+### Output
+
+```
+Configuration reloaded successfully
+```
+
+Or on error:
+
+```
+Configuration reload failed: invalid hotkey format
+```
+
+### What Gets Reloaded
+
+#### Reloaded Without Restart
+
+- Hotkey bindings (re-registered)
+- Mode-specific settings (hints, grid, scroll, recursive-grid)
+- Visual appearance (colors, fonts, sizes)
+- Key bindings for modes
+- Auto-exit actions
+- Logging configuration
+
+#### Requires Restart
+
+- Systray enabled/disabled state
+- IPC socket configuration
+- Platform-specific settings
+
+### Workflow Example
+
+```bash
+# Edit configuration file
+vim ~/.config/neru/config.toml
+
+# Reload without restarting
+neru config reload
+
+# Verify changes
+neru config dump | jq '.hotkeys'
+```
+
+### Behavior
+
+1. Reads configuration from original file path
+2. Validates configuration
+3. If validation succeeds:
+   - Applies new settings
+   - Re-registers hotkeys
+   - Updates mode configurations
+   - Returns success message
+4. If validation fails:
+   - Keeps current configuration
+   - Returns error message
+   - Daemon continues with old config
+
+### Error Handling
+
+<ResponseField name="Configuration Validation Failed" type="error">
+  **Behavior:** Configuration is not reloaded, daemon continues with current config
+  
+  **Example:**
+  ```
+  Configuration reload failed: invalid hotkey format in 'hints' field
+  ```
+  
+  **Resolution:**
+  1. Fix configuration file syntax
+  2. Validate with `neru config dump` (shows current valid config)
+  3. Run `neru config reload` again
+</ResponseField>
+
+<ResponseField name="File Not Found" type="error">
+  **Message:** `failed to read config file`
+  
+  **Resolution:** Ensure configuration file exists at expected location
+</ResponseField>
+
+### Configuration File Location
+
+Neru searches for configuration in these locations:
+
+1. Path specified with `--config` flag when launching
+2. `~/.config/neru/config.toml`
+3. `~/.neru.toml`
+4. Built-in defaults
+
+### Prerequisites
+
+- Daemon must be running
+- Configuration file must be readable
+- Configuration must be valid TOML syntax
+
+### Related Commands
+
+- [dump](#dump) - View current configuration
+- [daemon launch](/api/commands/daemon#launch) - Launch with specific config
+
+---
+
+## Error Handling
+
+### Common Errors
+
+<ResponseField name="ERR_IPC_SERVER_NOT_RUNNING" type="error">
+  **Message:** `neru is not running. Start it first with 'neru' or 'neru launch'`
+  
+  **Resolution:** Run `neru launch` first
+</ResponseField>
+
+<ResponseField name="ERR_IPC_FAILED" type="error">
+  **Message:** `failed to send config command`
+  
+  **Possible Causes:**
+  - IPC socket connection failed
+  - Daemon crashed or hung
+  - Socket permissions issue
+  
+  **Resolution:**
+  ```bash
+  # Check daemon status
+  neru status
+  
+  # Restart daemon if needed
+  pkill neru
+  neru launch
+  ```
+</ResponseField>
+
+<ResponseField name="ERR_SERIALIZATION_FAILED" type="error">
+  **Message:** `failed to marshal config`
+  
+  **Resolution:** Internal error, report as bug
+</ResponseField>
+
+---
+
+## Technical Details
+
+### IPC Communication
+
+#### Config Dump Request
+
+```json
+{
+  "action": "config",
+  "params": {},
+  "args": []
+}
+```
+
+#### Config Dump Response
+
+```json
+{
+  "success": true,
+  "message": "OK",
+  "code": "OK",
+  "data": {
+    "general": { ... },
+    "hotkeys": { ... },
+    "hints": { ... },
+    "grid": { ... },
+    "recursive_grid": { ... },
+    "scroll": { ... },
+    "logging": { ... }
+  }
+}
+```
+
+#### Config Reload Request
+
+```json
+{
+  "action": "reload_config",
+  "params": {},
+  "args": []
+}
+```
+
+#### Config Reload Response (Success)
+
+```json
+{
+  "success": true,
+  "message": "Configuration reloaded successfully",
+  "code": "OK"
+}
+```
+
+#### Config Reload Response (Error)
+
+```json
+{
+  "success": false,
+  "message": "Configuration reload failed: invalid hotkey format",
+  "code": "ERR_CONFIG_INVALID"
+}
+```
+
+### Configuration Validation
+
+The daemon validates configuration on reload:
+
+- Hotkey format and modifiers
+- Color values (hex, rgb, rgba)
+- Numeric ranges (sizes, counts, etc.)
+- Key binding syntax
+- Required fields
+
+### Hot Reload Implementation
+
+Reload process:
+
+1. Parse TOML file
+2. Validate all fields
+3. Unregister current hotkeys
+4. Apply new configuration to components
+5. Re-register new hotkeys
+6. Update mode settings
+7. Return success/error
+
+### Configuration Merge
+
+Configuration values are merged:
+
+1. Built-in defaults
+2. Custom configuration file
+3. Command-line flags (for `launch` only)
+
+Later sources override earlier ones.
+
+---
+
+## Scripting Examples
+
+### Validate Configuration
+
+```bash
+#!/bin/bash
+# Validate config changes before applying
+
+CONFIG_FILE="$HOME/.config/neru/config.toml"
+
+# Backup current config
+neru config dump > /tmp/neru-config-backup.json
+
+# Try to reload
+if neru config reload; then
+    echo "Configuration valid and loaded"
+else
+    echo "Configuration invalid, keeping current config"
+    exit 1
+fi
+```
+
+### Compare Configurations
+
+```bash
+#!/bin/bash
+# Compare running config with file
+
+# Get current running config
+neru config dump > /tmp/running-config.json
+
+# Parse config file (requires tool to convert TOML to JSON)
+# Example: tomlq . ~/.config/neru/config.toml > /tmp/file-config.json
+
+# Compare
+diff /tmp/running-config.json /tmp/file-config.json
+```
+
+### Extract Hotkeys
+
+```bash
+#!/bin/bash
+# List all configured hotkeys
+
+echo "Configured Hotkeys:"
+neru config dump | jq -r '.hotkeys | to_entries[] | "\(.key): \(.value)"'
+```
+
+### Monitor Configuration
+
+```bash
+#!/bin/bash
+# Watch config file and auto-reload on changes
+
+CONFIG_FILE="$HOME/.config/neru/config.toml"
+
+fswatch -o "$CONFIG_FILE" | while read; do
+    echo "Configuration file changed, reloading..."
+    neru config reload
+done
+```
+
+---
+
+## See Also
+
+- [Configuration Reference](/api/config/general) - All configuration options
+- [Hotkeys Configuration](/api/config/hotkeys) - Hotkey setup
+- [Daemon Commands](/api/commands/daemon) - Launch with custom config
+- [Status Commands](/api/commands/status) - Check daemon state

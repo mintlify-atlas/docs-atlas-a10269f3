@@ -1,0 +1,248 @@
+---
+title: Grid Configuration
+description: Grid mode layout, colors, labels, and behavior settings
+---
+
+## Overview
+
+Grid mode divides the screen into a coordinate-based grid for direct position selection. It works universally without accessibility support, making it ideal for apps with no AX APIs, precise cursor positioning, or fast navigation.
+
+## Configuration Section
+
+```toml
+[grid]
+```
+
+## Core Settings
+
+<ParamField path="enabled" type="boolean" default="true">
+  Enable or disable grid mode globally.
+</ParamField>
+
+<ParamField path="characters" type="string" default='abcdefghijklmnpqrstuvwxyz'>
+  Primary grid labels. Must contain at least 2 unique ASCII characters with no duplicates (case-insensitive). Cannot contain the reset key (space by default).
+  
+  **Examples:**
+  ```toml
+  characters = "abcdefghijklmnpqrstuvwxyz"  # All letters (default)
+  characters = "asdfghjkl"                  # Home row only
+  characters = "1234567890"                 # Numbers only
+  characters = "hjklasdfg"                  # Vim-style
+  ```
+</ParamField>
+
+<ParamField path="sublayer_keys" type="string" default='abcdefghijklmnpqrstuvwxyz'>
+  Subgrid labels when narrowing selection. Must contain at least 9 characters for 3×3 subgrid. Falls back to `characters` if not specified.
+</ParamField>
+
+<ParamField path="backspace_key" type="string" default='Backspace'>
+  Key for input correction (deleting the last typed character). When empty (`""`), defaults to standard Backspace/Delete key.
+  
+  Must not conflict with `characters`, `row_labels`, `col_labels`, `sublayer_keys`, or action key bindings.
+</ParamField>
+
+### Custom Row/Column Labels
+
+<ParamField path="row_labels" type="string" default='"'>
+  Optional custom labels for rows. When not provided, labels are inferred from `characters`.
+  
+  **Examples:**
+  ```toml
+  row_labels = "123456789"    # Numbers for rows
+  row_labels = "',.pyfgcrl/"  # Dvorak-style
+  ```
+</ParamField>
+
+<ParamField path="col_labels" type="string" default='"'>
+  Optional custom labels for columns. When not provided, labels are inferred from `characters`.
+  
+  **Examples:**
+  ```toml
+  col_labels = "abcdefghij"   # Letters for columns
+  col_labels = "aoeuidhtns"   # Dvorak-style
+  ```
+</ParamField>
+
+### Mode Exit and Actions
+
+<ParamField path="mode_exit_keys" type="array[string]" default="[]">
+  Additional keys that exit grid mode (merged with `general.mode_exit_keys`). Must not conflict with grid characters or control keys.
+</ParamField>
+
+<ParamField path="auto_exit_actions" type="array[string]" default="[]">
+  Actions that cause grid mode to exit automatically after execution.
+  
+  **Available actions:** `left_click`, `right_click`, `middle_click`, `mouse_down`, `mouse_up`, `move_mouse_relative`
+  
+  **Example:**
+  ```toml
+  auto_exit_actions = ["left_click"]
+  ```
+</ParamField>
+
+<Warning>
+  Including `move_mouse_relative` in `auto_exit_actions` will cause the mode to exit on every arrow-key nudge, which is usually undesirable.
+</Warning>
+
+### Grid Behavior
+
+<ParamField path="live_match_update" type="boolean" default="true">
+  Highlight cells as you type in real-time.
+</ParamField>
+
+<ParamField path="hide_unmatched" type="boolean" default="true">
+  Hide non-matching cells as you narrow the selection.
+</ParamField>
+
+<ParamField path="prewarm_enabled" type="boolean" default="true">
+  Pre-compute grid on startup for faster first use. Uses approximately 1.5MB RAM.
+</ParamField>
+
+<ParamField path="enable_gc" type="boolean" default="false">
+  Enable periodic memory cleanup. Adds CPU overhead; only enable if memory is constrained.
+</ParamField>
+
+### Control Keys
+
+<ParamField path="reset_key" type="string" default=' '>
+  Key to clear current input and start over. Default is space.
+  
+  **Valid formats:** single character, named key (`Home`, `End`, `Tab`, `F1`–`F20`), or modifier combo (`Ctrl+R`).
+  
+  **Examples:**
+  ```toml
+  reset_key = " "       # Space (default)
+  reset_key = ","       # Comma
+  reset_key = "Ctrl+R"  # Modifier combo
+  reset_key = "Home"    # Named key
+  ```
+</ParamField>
+
+## Visual Styling
+
+### UI Section
+
+```toml
+[grid.ui]
+```
+
+<ParamField path="font_size" type="integer" default="10">
+  Label font size in points. Valid range: 6–72.
+</ParamField>
+
+<ParamField path="font_family" type="string" default='"'>
+  Font name for labels. Empty string uses system font.
+</ParamField>
+
+<ParamField path="border_width" type="integer" default="1">
+  Cell border width in pixels. Valid range: ≥0.
+</ParamField>
+
+### Theme-Aware Colors
+
+<Note>
+  All colors are theme-aware. When empty (`""`), Neru uses built-in defaults that adapt to Light/Dark Mode automatically.
+</Note>
+
+<ParamField path="background_color_light" type="string" default='#9900B4D8'>
+  Cell background for Light Mode. Format: `#AARRGGBB` or `#RRGGBB`.
+</ParamField>
+
+<ParamField path="background_color_dark" type="string" default='#99003554'>
+  Cell background for Dark Mode.
+</ParamField>
+
+<ParamField path="text_color_light" type="string" default='#FF003554'>
+  Label text for Light Mode.
+</ParamField>
+
+<ParamField path="text_color_dark" type="string" default='#FFB3E8F5'>
+  Label text for Dark Mode.
+</ParamField>
+
+<ParamField path="matched_text_color_light" type="string" default='#FFAAEEFF'>
+  Matched cell text for Light Mode.
+</ParamField>
+
+<ParamField path="matched_text_color_dark" type="string" default='#FFFFFFFF'>
+  Matched cell text for Dark Mode.
+</ParamField>
+
+<ParamField path="matched_background_color_light" type="string" default='#B300CFCF'>
+  Matched cell background for Light Mode.
+</ParamField>
+
+<ParamField path="matched_background_color_dark" type="string" default='#B300B4D8'>
+  Matched cell background for Dark Mode.
+</ParamField>
+
+<ParamField path="matched_border_color_light" type="string" default='#B300CFCF'>
+  Matched cell border for Light Mode.
+</ParamField>
+
+<ParamField path="matched_border_color_dark" type="string" default='#B300B4D8'>
+  Matched cell border for Dark Mode.
+</ParamField>
+
+<ParamField path="border_color_light" type="string" default='#9900B4D8'>
+  Cell border for Light Mode.
+</ParamField>
+
+<ParamField path="border_color_dark" type="string" default='#99003554'>
+  Cell border for Dark Mode.
+</ParamField>
+
+## Complete Examples
+
+<CodeGroup>
+```toml Basic
+[grid]
+enabled = true
+characters = "asdfghjkl"
+live_match_update = true
+hide_unmatched = true
+auto_exit_actions = ["left_click"]
+
+[grid.ui]
+font_size = 10
+font_family = "SF Mono"
+```
+
+```toml Advanced
+[grid]
+enabled = true
+characters = "abcdefghijklmnpqrstuvwxyz"
+sublayer_keys = "asdfghjkl"
+backspace_key = "Backspace"
+row_labels = "123456789"
+col_labels = "abcdefghij"
+reset_key = " "
+auto_exit_actions = ["left_click"]
+
+live_match_update = true
+hide_unmatched = true
+prewarm_enabled = true
+enable_gc = false
+
+[grid.ui]
+font_size = 12
+font_family = "Menlo"
+border_width = 2
+background_color_light = "#8800AACC"
+matched_background_color_light = "#CC00DDEE"
+```
+</CodeGroup>
+
+## Validation Rules
+
+- `characters` must have at least 2 unique characters
+- `characters` cannot contain the `reset_key`
+- `sublayer_keys` must have at least 9 characters for subgrid
+- All character sets must be case-insensitively unique
+- Control keys cannot conflict with grid characters or action bindings
+
+## Related Configuration
+
+- [General Settings](/api/config/general) - Global exit keys
+- [Recursive Grid](/api/config/recursive-grid) - Alternative grid navigation
+- [Appearance](/api/config/appearance) - Mode indicators

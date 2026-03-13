@@ -1,0 +1,458 @@
+---
+title: Scroll Mode
+description: Vim-style keyboard scrolling at the cursor position
+---
+
+Scroll mode enables Vim-style keyboard-driven scrolling at the current cursor position, eliminating the need to reach for the mouse or trackpad.
+
+## How It Works
+
+When activated, scroll mode captures configured key presses and translates them into scroll events at the cursor's current position. Keys are fully customizable, supporting single keys, modifier combinations, and multi-key sequences.
+
+## When to Use Scroll Mode
+
+- **Reading long documents** - Code files, logs, articles
+- **Web browsing** - Scroll pages without mouse
+- **Terminal output** - Review command output
+- **Code review** - Navigate source files
+
+<Tip>
+Scroll mode works everywhere the cursor is positioned - no need to click first. Just move the cursor and start scrolling.
+</Tip>
+
+## Activation
+
+<Steps>
+  <Step title="Via Hotkey">
+    Press `Cmd+Shift+S` (default) to activate scroll mode.
+    
+    ```toml
+    [hotkeys]
+    "Cmd+Shift+S" = "scroll"
+    ```
+  </Step>
+  
+  <Step title="Via CLI">
+    ```bash
+    neru scroll
+    ```
+  </Step>
+</Steps>
+
+## Basic Workflow
+
+1. **Position cursor** - Move cursor over the scrollable area (window, text editor, browser)
+2. **Activate scroll mode** - Press your configured hotkey or run `neru scroll`
+3. **Scroll** - Use configured keys to scroll up/down/left/right
+4. **Jump** - Use `gg` / `Shift+G` to jump to top/bottom
+5. **Half-page** - Use `Ctrl+D` / `Ctrl+U` for half-page scrolling
+6. **Exit** - Press `Escape` to exit scroll mode
+
+<Note>
+Scroll mode activates at the **current cursor position**. Make sure the cursor is over the area you want to scroll before activating.
+</Note>
+
+## Key Bindings
+
+### Default Vim-Style Keys
+
+| Key | Action | Scroll Distance |
+|-----|--------|----------------|
+| `j` | Scroll down | 50px (default) |
+| `k` | Scroll up | 50px |
+| `h` | Scroll left | 50px |
+| `l` | Scroll right | 50px |
+| `Ctrl+D` | Half-page down | 500px (default) |
+| `Ctrl+U` | Half-page up | 500px |
+| `gg` | Jump to top | 1,000,000px (default) |
+| `Shift+G` | Jump to bottom | 1,000,000px |
+| `Down` | Scroll down | 50px |
+| `Up` | Scroll up | 50px |
+| `Left` | Scroll left | 50px |
+| `Right` | Scroll right | 50px |
+| `PageDown` | Half-page down | 500px |
+| `PageUp` | Half-page up | 500px |
+| `Cmd+Down` | Jump to bottom | 1,000,000px |
+| `Cmd+Up` | Jump to top | 1,000,000px |
+| `Escape` | Exit scroll mode | - |
+
+### Customizing Key Bindings
+
+All scroll keys are configurable. Each action can have multiple keys:
+
+```toml
+[scroll.key_bindings]
+# Movement (one line)
+scroll_up = ["k", "Up"]
+scroll_down = ["j", "Down"]
+scroll_left = ["h", "Left"]
+scroll_right = ["l", "Right"]
+
+# Page movement
+page_up = ["Ctrl+U", "PageUp"]
+page_down = ["Ctrl+D", "PageDown"]
+
+# Navigation (jump to position)
+go_top = ["gg", "Cmd+Up"]
+go_bottom = ["Shift+G", "Cmd+Down"]
+```
+
+<Note>
+Each action is an array and can have multiple key combinations. Neru will respond to any of them.
+</Note>
+
+## Configuration Options
+
+### Scroll Distances
+
+Customize how far each action scrolls:
+
+```toml
+[scroll]
+scroll_step = 50            # Pixels per j/k press (>= 1)
+scroll_step_half = 500      # Pixels for Ctrl+D/U (>= 1)
+scroll_step_full = 1000000  # Pixels for gg/G (>= 1)
+```
+
+<Accordion title="scroll_step: Line Scrolling">
+Controls j/k/h/l and arrow key scrolling.
+
+- **50px** (default) - ~2-3 lines of text
+- **100px** - Faster scrolling
+- **25px** - Finer control
+</Accordion>
+
+<Accordion title="scroll_step_half: Half-Page Scrolling">
+Controls Ctrl+D/U and PageDown/PageUp.
+
+- **500px** (default) - ~half screen on typical displays
+- **1000px** - Larger jumps
+- **250px** - Smaller jumps
+</Accordion>
+
+<Accordion title="scroll_step_full: Jump to Top/Bottom">
+Controls gg/Shift+G and Cmd+Up/Cmd+Down.
+
+- **1000000px** (default) - Effectively infinite, jumps to top/bottom
+- No need to change this value
+</Accordion>
+
+### Alternative Key Layouts
+
+<CodeGroup>
+```toml Vim-Style (Default)
+[scroll.key_bindings]
+scroll_up = ["k"]
+scroll_down = ["j"]
+scroll_left = ["h"]
+scroll_right = ["l"]
+go_top = ["gg"]
+go_bottom = ["Shift+G"]
+page_up = ["Ctrl+U"]
+page_down = ["Ctrl+D"]
+```
+
+```toml Mac-Style
+[scroll.key_bindings]
+scroll_up = ["Up"]
+scroll_down = ["Down"]
+scroll_left = ["Left"]
+scroll_right = ["Right"]
+go_top = ["Cmd+Up", "Home"]
+go_bottom = ["Cmd+Down", "End"]
+page_up = ["PageUp"]
+page_down = ["PageDown"]
+```
+
+```toml WASD-Style
+[scroll.key_bindings]
+scroll_up = ["w"]
+scroll_down = ["s"]
+scroll_left = ["a"]
+scroll_right = ["d"]
+go_top = ["Home"]
+go_bottom = ["End"]
+page_up = ["PageUp"]
+page_down = ["PageDown"]
+```
+
+```toml Arrow Keys Only
+[scroll.key_bindings]
+scroll_up = ["Up"]
+scroll_down = ["Down"]
+scroll_left = ["Left"]
+scroll_right = ["Right"]
+go_top = ["Home"]
+go_bottom = ["End"]
+page_up = ["Ctrl+Up"]
+page_down = ["Ctrl+Down"]
+```
+</CodeGroup>
+
+### Multi-Key Sequences
+
+Neru supports multi-key sequences like Vim's `gg`:
+
+```toml
+[scroll.key_bindings]
+go_top = ["gg"]       # Press "g" twice within 500ms
+go_bottom = ["Shift+G"]
+```
+
+<Note>
+Multi-key sequences have a 500ms timeout. Press both keys within this window for the sequence to activate.
+</Note>
+
+### Multiple Keys Per Action
+
+Assign multiple key combinations to the same action:
+
+```toml
+[scroll.key_bindings]
+scroll_up = ["k", "Up", "w"]           # Any of these scrolls up
+go_top = ["gg", "Cmd+Up", "Home"]      # Any of these jumps to top
+```
+
+## Key Format Reference
+
+| Format | Example | Description |
+|--------|---------|-------------|
+| Single key | `"j"`, `"k"` | Direct press |
+| Arrow keys | `"Up"`, `"Down"`, `"Left"`, `"Right"` | Named keys |
+| Modifier combo | `"Ctrl+U"`, `"Cmd+Down"`, `"Shift+G"` | Modifier + key |
+| Special keys | `"PageUp"`, `"PageDown"`, `"Home"`, `"End"` | Named specials |
+| Function keys | `"F1"`, `"F12"`, `"F20"` | Function keys F1-F20 |
+| Multi-key | `"gg"` | Sequence (500ms timeout) |
+
+<Warning>
+Named keys are case-insensitive (`"escape"`, `"Escape"`, `"ESCAPE"` all work), but title case is recommended (`"Escape"`).
+</Warning>
+
+## Visual Indicator
+
+Scroll mode can display a mode indicator near the cursor:
+
+```toml
+[mode_indicator.scroll]
+enabled = true       # Show indicator (default)
+text = "Scroll"     # Label text
+```
+
+Customize appearance:
+
+```toml
+[mode_indicator.ui]
+font_size = 10
+background_color_light = "#F200CFCF"
+background_color_dark = "#F200CFCF"
+text_color_light = "#FF003554"
+text_color_dark = "#FF003554"
+indicator_x_offset = 20  # X offset from cursor
+indicator_y_offset = 20  # Y offset from cursor
+```
+
+<Tip>
+The mode indicator helps track which mode is active, especially useful when learning Neru or switching between modes frequently.
+</Tip>
+
+## Real-World Examples
+
+### Example 1: Reading Code Files
+
+```bash
+# Position cursor over code editor
+# Activate scroll mode
+neru scroll
+
+# Scroll down line by line: j j j j
+# Jump to top: gg
+# Half-page down: Ctrl+D
+# Jump to bottom: Shift+G
+# Exit: Escape
+```
+
+### Example 2: Reviewing Terminal Output
+
+```bash
+# Run long command
+ls -lR /usr/local
+
+# Position cursor over terminal output
+# Activate scroll mode
+neru scroll
+
+# Scroll up to review: k k k k
+# Jump to top: gg
+# Exit: Escape
+```
+
+### Example 3: Web Browsing
+
+```bash
+# Position cursor over browser content
+# Activate scroll mode
+neru scroll
+
+# Read article:
+# j j j j (scroll down)
+# Ctrl+D (half-page down)
+# k k k (scroll up a bit)
+# Shift+G (jump to bottom/comments)
+# Exit: Escape
+```
+
+### Example 4: Custom Workflow with Arrow Keys
+
+```toml
+[scroll.key_bindings]
+scroll_up = ["Up"]
+scroll_down = ["Down"]
+page_up = ["Ctrl+Up"]
+page_down = ["Ctrl+Down"]
+go_top = ["Home"]
+go_bottom = ["End"]
+```
+
+```bash
+# Activate scroll mode
+neru scroll
+
+# Use arrow keys for scrolling
+# Down Down Down (line scrolling)
+# Ctrl+Down (half-page)
+# End (jump to bottom)
+```
+
+## Tips and Best Practices
+
+<Accordion title="Position Cursor Before Activating">
+Scroll mode scrolls at the **cursor position**. Make sure the cursor is over the scrollable area before activating.
+</Accordion>
+
+<Accordion title="Use Vim Keys for Efficiency">
+Default Vim-style keys (j/k/h/l) are on the home row and very efficient:
+```toml
+[scroll.key_bindings]
+scroll_up = ["k"]
+scroll_down = ["j"]
+```
+</Accordion>
+
+<Accordion title="Combine with Mode Indicator">
+```toml
+[mode_indicator.scroll]
+enabled = true
+text = "📜 Scroll"
+```
+Visual feedback helps track when scroll mode is active.
+</Accordion>
+
+<Accordion title="Adjust Scroll Distances to Your Preference">
+```toml
+[scroll]
+scroll_step = 100       # Faster line scrolling
+scroll_step_half = 800  # Larger half-pages
+```
+Experiment to find distances that feel natural for your screen size.
+</Accordion>
+
+<Accordion title="Use Multi-Key Sequences Sparingly">
+Multi-key sequences (like `gg`) are powerful but have a 500ms timeout. Use them for infrequent actions (jump to top/bottom) rather than frequent scrolling.
+</Accordion>
+
+<Accordion title="Add Arrow Keys as Fallback">
+```toml
+[scroll.key_bindings]
+scroll_up = ["k", "Up"]
+scroll_down = ["j", "Down"]
+```
+Provides familiar fallback keys while learning Vim-style navigation.
+</Accordion>
+
+## Advanced: Sequence Timeout
+
+Multi-key sequences (like `gg`) have a 500ms timeout. This is hardcoded and cannot be configured. If you press `g` once and wait more than 500ms, the sequence resets.
+
+```toml
+[scroll.key_bindings]
+go_top = ["gg"]  # Press "g" twice within 500ms
+```
+
+If the timeout is too short for your typing speed, use a different key combination:
+
+```toml
+[scroll.key_bindings]
+go_top = ["Home", "Cmd+Up"]  # Single-key alternatives
+```
+
+## Troubleshooting
+
+### Scroll Mode Not Activating
+
+```bash
+# Check daemon status
+neru status
+
+# Check permissions
+neru doctor
+
+# Try CLI directly
+neru scroll
+```
+
+### Scrolling Not Working
+
+1. **Cursor not positioned correctly** - Move cursor over scrollable area first
+2. **App doesn't support scrolling** - Try different app (browser, terminal, text editor)
+3. **Conflicting key bindings** - Check if keys are bound elsewhere
+
+```toml
+[logging]
+log_level = "debug"
+```
+
+Check logs:
+```bash
+tail -f ~/Library/Logs/neru/app.log
+# Look for scroll event logs
+```
+
+### Keys Not Responding
+
+Verify key bindings:
+
+```toml
+[scroll.key_bindings]
+scroll_up = ["k"]    # Must be array, not string
+# scroll_up = "k"    # WRONG - will not work
+```
+
+Ensure keys don't conflict with `mode_exit_keys`:
+
+```toml
+[general]
+mode_exit_keys = ["Escape"]  # Don't use keys already bound for scrolling
+```
+
+### Multi-Key Sequence Not Working
+
+Press both keys within 500ms:
+
+```toml
+[scroll.key_bindings]
+go_top = ["gg"]  # Press "g" twice quickly
+```
+
+If timeout is too short, use single-key alternative:
+
+```toml
+[scroll.key_bindings]
+go_top = ["Home"]  # Single key, no timeout
+```
+
+## Next Steps
+
+- [Hints Mode](/guides/hints-mode) - Element-based navigation
+- [Grid Mode](/guides/grid-mode) - Coordinate-based navigation
+- [Configuration Reference](/concepts/configuration-overview) - Complete config options
+- [CLI Usage](/guides/cli-usage) - Command-line interface

@@ -1,0 +1,481 @@
+---
+title: Navigation Modes
+description: Understanding the three navigation modes in Neru - when to use each and how they work
+icon: 'compass'
+---
+
+Neru provides three powerful navigation modes plus scroll mode, each designed for different scenarios. This guide helps you understand when to use each mode and how they work under the hood.
+
+## Overview
+
+<CardGroup cols={3}>
+  <Card title="Recursive Grid" icon="grid-2" iconType="solid">
+    **Recommended** - Precise coordinate-based navigation that works everywhere
+  </Card>
+  <Card title="Grid" icon="grid" iconType="solid">
+    Direct coordinate selection for quick, coarse navigation
+  </Card>
+  <Card title="Hints" icon="location-dot" iconType="solid">
+    Accessibility-driven labels on clickable elements
+  </Card>
+</CardGroup>
+
+---
+
+## Recursive Grid Mode (Recommended)
+
+<Note>
+**Default hotkey:** `Cmd+Shift+C`
+
+Recursive Grid is the recommended daily driver mode. It's precise, predictable, and works everywhere out-of-the-box without app-specific tweaks.
+</Note>
+
+### How It Works
+
+Recursive Grid divides your screen into cells and narrows your selection with each keypress:
+
+1. **Initial division** - Screen divided into NxN cells (default 2×2)
+2. **Cell selection** - Press a key to select a region (default: `u`, `i`, `j`, `k`)
+3. **Recursive subdivision** - Selected region divides again
+4. **Repeat** - Continue until cell is small enough (configurable min size)
+
+```toml
+[recursive_grid]
+enabled = true
+grid_cols = 2                    # 2×2 grid (4 cells)
+grid_rows = 2
+keys = "uijk"                     # u=upper-left, i=upper-right, j=lower-left, k=lower-right
+min_size_width = 25              # Stop subdividing below 25px
+min_size_height = 25
+max_depth = 10                   # Max recursion levels
+```
+
+### When to Use
+
+<CardGroup cols={2}>
+  <Card title="Universal Navigation" icon="globe">
+    Works in **every app, every window, every corner of macOS** - no exceptions, no app-specific setup needed
+  </Card>
+  <Card title="Precision Control" icon="bullseye">
+    Extremely precise cursor positioning for pixel-perfect clicks on any UI element
+  </Card>
+  <Card title="Large Screens" icon="display">
+    Ideal for large displays where a static grid would have too many cells to label efficiently
+  </Card>
+  <Card title="Muscle Memory" icon="brain">
+    Repetitive workflows benefit from muscle memory - the same key sequence reaches the same screen region
+  </Card>
+</CardGroup>
+
+### Coordinate-Based Architecture
+
+Recursive Grid uses **coordinate calculations**, not accessibility APIs:
+
+- No dependency on app accessibility support
+- Works on system UI (menubar, dock, mission control)
+- Consistent behavior across all applications
+- Never fails due to missing accessibility tree
+
+<Accordion title="Technical Implementation">
+From `internal/app/modes/recursive_grid.go:90-138`, the manager:
+
+1. Gets screen bounds via system API
+2. Normalizes to window-local coordinates
+3. Builds per-depth layout from config layers
+4. Provides callbacks for overlay updates and cursor movement
+5. Handles key input through manager's recursive subdivision logic
+
+The grid subdivision is purely mathematical - no external app state is queried.
+</Accordion>
+
+### Key Mapping
+
+Default 2×2 layout:
+
+```
+u   →   i          u = Upper-left
+                   i = Upper-right
+j   →   k          j = Lower-left
+                   k = Lower-right
+```
+
+Customize with different grid dimensions:
+
+```toml
+# 3×3 grid (9 cells)
+grid_cols = 3
+grid_rows = 3
+keys = "gcrhtnmwv"  # 9 unique characters for home row typing
+```
+
+### Per-Depth Layer Configuration
+
+Override grid dimensions at specific recursion depths:
+
+```toml
+[recursive_grid]
+grid_cols = 2
+grid_rows = 2
+keys = "uijk"
+
+# Wide 4×2 grid for initial screen division
+[[recursive_grid.layers]]
+depth = 0
+grid_cols = 4
+grid_rows = 2
+keys = "qwerasdf"
+
+# 3×3 grid for finer selection
+[[recursive_grid.layers]]
+depth = 1
+grid_cols = 3
+grid_rows = 3
+keys = "qweasdzxc"
+
+# Depth 2+: falls back to 2×2 defaults
+```
+
+---
+
+## Grid Mode
+
+<Note>
+**Default hotkey:** `Cmd+Shift+G`
+
+Grid Mode provides direct coordinate selection without recursive subdivision.
+</Note>
+
+### How It Works
+
+Grid Mode divides the screen into a labeled coordinate grid:
+
+1. **Static grid** - Screen divided into rows and columns
+2. **Direct input** - Type a label to select that cell (e.g., "ab", "j5")
+3. **Subgrid** - Optionally show 3×3 subgrid for fine-tuning
+4. **Immediate action** - Cursor moves to selected position
+
+```toml
+[grid]
+enabled = true
+characters = "abcdefghijklmnpqrstuvwxyz"  # Labels for cells
+reset_key = " "                            # Space to clear input
+backspace_key = "Backspace"                # Delete last character
+live_match_update = true                   # Highlight as you type
+hide_unmatched = true                      # Dim non-matching cells
+```
+
+### When to Use
+
+<CardGroup cols={2}>
+  <Card title="Fast Coarse Navigation" icon="rabbit">
+    Quick jumps to general screen regions without recursive narrowing
+  </Card>
+  <Card title="No Accessibility" icon="lock-open">
+    Works when target app doesn't expose accessibility APIs
+  </Card>
+  <Card title="Everywhere" icon="check">
+    Universal - coordinate-based, no app-specific requirements
+  </Card>
+  <Card title="Simple Input" icon="keyboard">
+    Type a short label (1-2 characters) for instant positioning
+  </Card>
+</CardGroup>
+
+### Custom Row/Column Labels
+
+Separate row and column characters:
+
+```toml
+# Numbers for rows, letters for columns
+row_labels = "123456789"
+col_labels = "abcdefghij"
+
+# Dvorak-style home row
+row_labels = "',.pyfgcrl/"
+col_labels = "aoeuidhtns"
+```
+
+### Subgrid Navigation
+
+After selecting a cell, Grid Mode can show a 3×3 subgrid for precise positioning:
+
+```toml
+sublayer_keys = "abcdefghijklmnpqrstuvwxyz"  # Keys for 3×3 subgrid
+```
+
+From `internal/app/guides/grid-mode.go:216-241`, the subgrid callback:
+- Moves cursor to cell center
+- Draws 3×3 subgrid inside selected cell
+- Allows further refinement before final click
+
+---
+
+## Hints Mode
+
+<Note>
+**Default hotkey:** `Cmd+Shift+Space`
+
+Hints Mode labels every clickable element with short keyboard shortcuts.
+</Note>
+
+### How It Works
+
+Hints Mode uses macOS Accessibility APIs to discover UI elements:
+
+1. **Accessibility tree traversal** - Query app's UI hierarchy
+2. **Clickable detection** - Find elements with clickable roles
+3. **Label generation** - Assign short labels using hint characters
+4. **Overlay rendering** - Draw labels at element positions
+5. **Input matching** - Type label to click that element
+
+```toml
+[hints]
+enabled = true
+hint_characters = "asdfghjkl"  # Home row for fast typing
+backspace_key = "Backspace"    # Correct input mistakes
+max_depth = 50                 # Accessibility tree depth limit
+```
+
+### When to Use
+
+<CardGroup cols={2}>
+  <Card title="Clickable Elements" icon="hand-pointer">
+    Perfect for buttons, links, menus in standard macOS apps
+  </Card>
+  <Card title="Forms & Dialogs" icon="square-check">
+    Multiple clickable elements with clear boundaries
+  </Card>
+  <Card title="Semantic Navigation" icon="sitemap">
+    Leverage app's accessibility structure for smart element discovery
+  </Card>
+  <Card title="Direct Targeting" icon="crosshairs">
+    Type a hint label to click exactly that UI element
+  </Card>
+</CardGroup>
+
+### Accessibility API Architecture
+
+<Warning>
+**Hints Mode requires accessibility support** in the target application. Some apps (especially games, proprietary creative tools, or legacy software) may not expose a complete accessibility tree.
+</Warning>
+
+From `internal/app/guides/hints-mode.go:130-148`, the hint activation process:
+
+1. **Context timeout** - 5-second limit for hint generation
+2. **HintService.ShowHints()** - Queries accessibility APIs
+3. **Screen filtering** - Only show hints on active display
+4. **Deduplication** - Remove hints at duplicate positions
+5. **Collection creation** - Build domain hint collection
+
+### Clickable Roles
+
+Default accessibility roles that generate hints:
+
+```toml
+clickable_roles = [
+    "AXButton",
+    "AXComboBox",
+    "AXCheckBox",
+    "AXRadioButton",
+    "AXLink",
+    "AXPopUpButton",
+    "AXTextField",
+    "AXSlider",
+    "AXTabButton",
+    "AXSwitch",
+    "AXDisclosureTriangle",
+    "AXTextArea",
+    "AXMenuButton",
+    "AXMenuItem",
+    "AXCell",
+    "AXRow",
+]
+```
+
+### Per-App Configuration
+
+Customize hint behavior for specific apps:
+
+```toml
+# Chrome: add tab groups
+[[hints.app_configs]]
+bundle_id = "com.google.Chrome"
+additional_clickable_roles = ["AXTabGroup"]
+
+# Adobe: include static text and images
+[[hints.app_configs]]
+bundle_id = "com.adobe.illustrator"
+additional_clickable_roles = ["AXStaticText", "AXImage"]
+ignore_clickable_check = true
+```
+
+### Enhanced Browser Support
+
+Electron and Chromium apps need special accessibility attributes:
+
+```toml
+[hints.additional_ax_support]
+enable = true
+additional_electron_bundles = ["com.microsoft.VSCode"]
+additional_chromium_bundles = ["com.google.Chrome"]
+```
+
+From the configuration docs, this sets:
+- **Electron apps**: `AXManualAccessibility` attribute
+- **Chromium browsers**: `AXEnhancedUserInterface` attribute
+
+---
+
+## Scroll Mode
+
+<Note>
+**Default hotkey:** `Cmd+Shift+S`
+
+Scroll Mode isn't a full navigation mode but a complementary capability for Vim-style scrolling.
+</Note>
+
+### How It Works
+
+Vim-style keyboard scrolling at the cursor position:
+
+```toml
+[scroll]
+scroll_step = 50            # j/k: 50 pixels per press
+scroll_step_half = 500      # Ctrl+D/U: half page
+scroll_step_full = 1000000  # gg/G: top/bottom
+
+[scroll.key_bindings]
+scroll_up = ["k", "Up"]
+scroll_down = ["j", "Down"]
+scroll_left = ["h", "Left"]
+scroll_right = ["l", "Right"]
+go_top = ["gg", "Cmd+Up"]
+go_bottom = ["Shift+G", "Cmd+Down"]
+page_up = ["Ctrl+U", "PageUp"]
+page_down = ["Ctrl+D", "PageDown"]
+```
+
+### When to Use
+
+- **Long documents** - Code files, web pages, PDFs
+- **Code review** - Precise line-by-line scrolling
+- **Terminal workflows** - Vim-like `j`/`k` navigation
+- **Combined navigation** - Scroll to find target, switch to grid/hints to click
+
+---
+
+## Mode Comparison
+
+| Feature | Recursive Grid | Grid | Hints |
+|---------|---------------|------|-------|
+| **Works everywhere** | ✅ Yes | ✅ Yes | ⚠️ Requires accessibility |
+| **Precision** | ✅ Extremely precise | ✅ Precise with subgrid | ⚠️ Element boundaries |
+| **Speed** | ⏱️ 3-5 keypresses | ⏱️ 1-2 keypresses | ⏱️ 2-3 keypresses |
+| **Visual clutter** | ✅ Minimal (only current grid) | ⚠️ Many labels | ⚠️ Many labels |
+| **Setup required** | ✅ None | ✅ None | ⚠️ Per-app config sometimes |
+| **System UI** | ✅ Menubar, Dock, etc. | ✅ Menubar, Dock, etc. | ✅ With config |
+| **Muscle memory** | ✅ Strong | ⏱️ Moderate | ❌ Labels change |
+
+---
+
+## Combining Modes
+
+Use modes together for optimal workflows:
+
+<Tabs>
+  <Tab title="Browse & Click">
+    1. **Scroll Mode** - Navigate document with `j`/`k`
+    2. **Hints Mode** - Find link and type hint label
+    3. **Auto-exit** - Click and return to normal
+  </Tab>
+  <Tab title="Precise UI Click">
+    1. **Grid Mode** - Quick jump to general region
+    2. **Subgrid** - Refine to exact pixel
+    3. **Direct action** - Click with `Shift+L`
+  </Tab>
+  <Tab title="Recursive Workflow">
+    1. **Recursive Grid** - Navigate to menubar region
+    2. **Auto-click** - `--action left_click` via hotkey
+    3. **Hints Mode** - Select menu item
+  </Tab>
+</Tabs>
+
+---
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Start with Recursive Grid">
+    Use Recursive Grid as your default mode:
+    - Works in 100% of scenarios
+    - No app-specific configuration needed
+    - Muscle memory develops quickly
+    - System UI navigation is seamless
+  </Accordion>
+  
+  <Accordion title="Keep Hints for Semantic Navigation">
+    Use Hints Mode when:
+    - You know the element is clickable
+    - App has good accessibility support
+    - Many buttons/links in a small area
+    - Semantic targeting is faster than coordinates
+  </Accordion>
+  
+  <Accordion title="Grid for Speed">
+    Use Grid Mode when:
+    - You need a quick coarse jump
+    - Target region is large
+    - Recursive subdivision feels too slow
+    - Single or double keypress is sufficient
+  </Accordion>
+  
+  <Accordion title="Configure Auto-Exit Actions">
+    Streamline your workflow by exiting modes automatically after click:
+    
+    ```toml
+    [hints]
+    auto_exit_actions = ["left_click", "middle_click"]
+    
+    [grid]
+    auto_exit_actions = ["left_click"]
+    
+    [recursive_grid]
+    auto_exit_actions = ["left_click", "right_click"]
+    ```
+  </Accordion>
+  
+  <Accordion title="Customize Keys for Your Layout">
+    Optimize hint and grid characters for your keyboard layout:
+    
+    ```toml
+    # QWERTY home row
+    [hints]
+    hint_characters = "asdfghjkl"
+    
+    # Dvorak home row
+    hint_characters = "aoeuidhtn"
+    
+    # Colemak home row
+    hint_characters = "arstdhneio"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Further Reading
+
+<CardGroup cols={2}>
+  <Card title="Configuration Overview" icon="gear" href="/concepts/configuration-overview">
+    Learn about config files, TOML format, and reloading
+  </Card>
+  <Card title="Keyboard Shortcuts" icon="keyboard" href="/api/config/hotkeys">
+    Complete reference of all hotkeys and mode keys
+  </Card>
+  <Card title="Troubleshooting" icon="wrench" href="/guides/troubleshooting">
+    Fix common issues with hints mode and app support
+  </Card>
+  <Card title="Advanced Configuration" icon="sliders" href="/api/config/hotkeys">
+    Deep dive into custom keybindings and actions
+  </Card>
+</CardGroup>

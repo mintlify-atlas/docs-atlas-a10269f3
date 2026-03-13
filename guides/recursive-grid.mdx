@@ -1,0 +1,527 @@
+---
+title: Recursive Grid Mode
+description: Precise cursor positioning with recursive cell-based navigation
+---
+
+Recursive grid mode provides extremely precise cursor positioning by recursively dividing the screen into smaller cells with each keypress.
+
+## How It Works
+
+The screen starts divided into an N×N grid (default 2×2). When you press a cell key, that cell is divided again into N×N sub-cells. This continues recursively until the cell is too small to divide further, achieving pixel-perfect precision.
+
+## When to Use Recursive Grid
+
+- **Extreme precision** - Need exact cursor placement
+- **Large screens** - Where regular grid would have too many cells
+- **Muscle memory workflows** - Common screen areas become predictable key sequences
+- **Games and graphics** - Precise targeting in custom UIs
+
+<Tip>
+Recursive grid is the recommended navigation mode for users who need precise cursor control without memorizing complex coordinate labels.
+</Tip>
+
+## Activation
+
+<Steps>
+  <Step title="Via Hotkey">
+    Press `Cmd+Shift+C` (default) to activate recursive grid mode.
+    
+    ```toml
+    [hotkeys]
+    "Cmd+Shift+C" = "recursive_grid"
+    ```
+  </Step>
+  
+  <Step title="Via CLI">
+    ```bash
+    neru recursive_grid
+    ```
+  </Step>
+  
+  <Step title="With Auto-Action">
+    Auto-click on selection:
+    ```bash
+    neru recursive_grid --action left_click
+    ```
+    
+    Or configure the hotkey:
+    ```toml
+    [hotkeys]
+    "Cmd+Shift+C" = "recursive_grid --action left_click"
+    ```
+  </Step>
+</Steps>
+
+## Basic Workflow
+
+1. **Activate recursive grid** - Press your configured hotkey or run `neru recursive_grid`
+2. **Select cell** - Press a cell key (default: `u` = top-left, `i` = top-right, `j` = bottom-left, `k` = bottom-right)
+3. **Narrow selection** - Selected cell divides into smaller cells
+4. **Repeat** - Continue selecting cells until desired precision is reached
+5. **Backtrack** - Press `Backspace` to go up one level
+6. **Reset** - Press `Space` to return to initial center
+7. **Execute action** - Cursor moves and performs action when cell reaches minimum size
+
+<CodeGroup>
+```bash Default 2×2 Layout
+# Initial screen:
+# u → i     u = upper-left
+#           i = upper-right
+# j → k     j = lower-left
+#           k = lower-right
+
+# Press "u" -> top-left quadrant divides again:
+# u → i
+# j → k
+
+# Press "k" -> bottom-right sub-quadrant divides:
+# u → i
+# j → k
+
+# Continue until minimum cell size reached
+```
+
+```bash 3×3 Layout
+# Configure 3×3 grid:
+[recursive_grid]
+grid_cols = 3
+grid_rows = 3
+keys = "qweasdzxc"
+
+# Layout:
+# q → w → e
+# a → s → d
+# z → x → c
+```
+</CodeGroup>
+
+## Key Bindings
+
+### Default Keys (2×2 Grid)
+
+| Key | Action |
+|-----|--------|
+| `u` | Select upper-left cell |
+| `i` | Select upper-right cell |
+| `j` | Select lower-left cell |
+| `k` | Select lower-right cell |
+| `Backspace` | Move up one level (backtrack) |
+| `Space` | Reset to initial center |
+| `Shift+L` | Left click at cursor |
+| `Shift+R` | Right click at cursor |
+| `Arrow keys` | Fine-tune position (10px per press) |
+| `Escape` | Exit recursive grid mode |
+
+### Custom Grid Dimensions
+
+```toml
+[recursive_grid]
+# 2×2 grid (4 cells, default)
+grid_cols = 2
+grid_rows = 2
+keys = "uijk"  # Exactly 4 chars (2×2)
+
+# 3×3 grid (9 cells)
+grid_cols = 3
+grid_rows = 3
+keys = "gcrhtnmwv"  # Exactly 9 chars (3×3)
+
+# 4×2 grid (8 cells, non-square)
+grid_cols = 4
+grid_rows = 2
+keys = "qwerasdf"  # Exactly 8 chars (4×2)
+```
+
+<Note>
+`keys` must have exactly `grid_cols × grid_rows` unique ASCII characters.
+</Note>
+
+### Per-Depth Layer Configuration
+
+Override grid dimensions and keys at specific recursion depths:
+
+```toml
+[recursive_grid]
+# Default: 2×2 with "uijk"
+grid_cols = 2
+grid_rows = 2
+keys = "uijk"
+
+# Depth 0: start with wide 4×2 grid
+[[recursive_grid.layers]]
+depth = 0
+grid_cols = 4
+grid_rows = 2
+keys = "qwerasdf"
+
+# Depth 1: narrow to 3×3 grid
+[[recursive_grid.layers]]
+depth = 1
+grid_cols = 3
+grid_rows = 3
+keys = "qweasdzxc"
+
+# Depth 2+: use default 2×2 "uijk"
+```
+
+<Tip>
+Depths are 0-indexed. Depth 0 is the initial screen. Depths without a layer entry use the top-level defaults.
+</Tip>
+
+## Configuration Options
+
+### Grid Dimensions
+
+```toml
+[recursive_grid]
+grid_cols = 2           # Columns (>= 2)
+grid_rows = 2           # Rows (>= 2)
+keys = "uijk"           # Cell keys (exactly cols × rows chars)
+```
+
+### Recursion Limits
+
+```toml
+[recursive_grid]
+min_size_width = 25     # Min cell width in pixels (>= 10)
+min_size_height = 25    # Min cell height in pixels (>= 10)
+max_depth = 10          # Max recursion levels (1-20)
+```
+
+<Accordion title="min_size_width / min_size_height">
+Stops subdivision when cell reaches this size. Lower values = more precision, more keypresses.
+
+- **25px** (default) - Good balance, ~4-5 keypresses for full screen
+- **10px** - Maximum precision, more keypresses
+- **50px** - Faster navigation, less precision
+</Accordion>
+
+<Accordion title="max_depth">
+Maximum number of subdivision levels. Prevents infinite recursion.
+
+- **10** (default) - Sufficient for 4K displays
+- **20** - Maximum allowed
+- **5** - Faster navigation, less precision
+</Accordion>
+
+### Navigation Keys
+
+```toml
+[recursive_grid]
+backspace_key = "Backspace"  # Go up one level
+reset_key = " "              # Return to center (Space)
+```
+
+### Auto-Exit After Actions
+
+```toml
+[recursive_grid]
+# Exit mode after left or right click
+auto_exit_actions = ["left_click", "right_click"]
+```
+
+## Visual Customization
+
+### Grid Lines and Colors
+
+```toml
+[recursive_grid.ui]
+line_color_light = "#FF007A9E"       # Blue lines (Light Mode)
+line_color_dark = "#FF00CFCF"        # Cyan lines (Dark Mode)
+line_width = 1                       # Line thickness (>= 0)
+highlight_color_light = "#4D007A9E" # Selected cell fill (30% opacity)
+highlight_color_dark = "#4D00CFCF"
+```
+
+### Cell Labels
+
+```toml
+[recursive_grid.ui]
+text_color_light = "#FF007A9E"       # Label text
+text_color_dark = "#FF00CFCF"
+font_size = 10                       # 6-72
+font_family = "SF Mono"              # Empty = system font
+```
+
+### Label Backgrounds
+
+Add rounded backgrounds behind cell labels:
+
+```toml
+[recursive_grid.ui]
+label_background = true              # Enable label backgrounds
+label_background_color_light = "#FFAAEEFF"
+label_background_color_dark = "#FF003554"
+label_background_padding_x = -1      # -1 = auto
+label_background_padding_y = -1      # -1 = auto
+label_background_border_radius = -1  # -1 = auto
+label_background_border_width = 1
+```
+
+<Note>
+When `label_background = true`, labels get a separate rounded background behind the letter, making them easier to read.
+</Note>
+
+### Sub-Key Preview
+
+Show miniature key grid inside each cell:
+
+```toml
+[recursive_grid.ui]
+sub_key_preview = true                         # Enable preview
+sub_key_preview_font_size = 8                  # Preview label size (4-72)
+sub_key_preview_text_color_light = "#66007A9E" # 40% opacity
+sub_key_preview_text_color_dark = "#6600CFCF"
+sub_key_preview_autohide_multiplier = 1.5      # Hide when cell too small
+```
+
+<Tip>
+`sub_key_preview` helps you learn the key layout by showing which key maps to which sub-region.
+</Tip>
+
+## Real-World Examples
+
+### Example 1: Quick Corner Access (2×2)
+
+```bash
+# Activate recursive grid
+neru recursive_grid
+
+# Top-left corner: press "u" 4-5 times
+# Top-right corner: press "i" 4-5 times
+# Bottom-right corner: press "k" 4-5 times
+
+# Exact position depends on screen size and min_size settings
+```
+
+### Example 2: Precise Targeting (3×3)
+
+```toml
+[recursive_grid]
+grid_cols = 3
+grid_rows = 3
+keys = "qweasdzxc"
+```
+
+```bash
+# Activate
+neru recursive_grid
+
+# Center of screen: "s" -> "s" -> "s" (center cell at each depth)
+# Top-right quadrant: "e" -> "e" -> subdivide further
+```
+
+### Example 3: Backtracking
+
+```bash
+# Activate
+neru recursive_grid
+
+# Press "u" -> top-left
+# Press "k" -> bottom-right sub-cell
+# Press Backspace -> back to "u" level
+# Press "i" -> correct to top-right
+```
+
+### Example 4: Reset to Center
+
+```bash
+# Activate
+neru recursive_grid
+
+# Press "u" -> "u" -> "j" (navigating)
+# Press Space -> cursor returns to screen center, grid resets
+# Start navigation again
+```
+
+### Example 5: Custom Workflow with Layers
+
+```toml
+[recursive_grid]
+grid_cols = 2
+grid_rows = 2
+keys = "uijk"
+
+# Start with wide 4×2 grid for coarse selection
+[[recursive_grid.layers]]
+depth = 0
+grid_cols = 4
+grid_rows = 2
+keys = "qwerasdf"
+
+# Switch to 3×3 for medium precision
+[[recursive_grid.layers]]
+depth = 1
+grid_cols = 3
+grid_rows = 3
+keys = "gcrhtnmwv"
+
+# Finish with 2×2 for fine control
+# (depths 2+ use default 2×2 "uijk")
+```
+
+```bash
+# First press: choose one of 8 wide cells (4×2)
+neru recursive_grid
+# Press "w" -> second-from-left, top row
+
+# Second press: choose one of 9 sub-cells (3×3)
+# Press "n" -> center-bottom
+
+# Third+ presses: choose one of 4 sub-cells (2×2)
+# Press "k" -> bottom-right
+# Press "i" -> top-right within that
+```
+
+## Tips and Best Practices
+
+<Accordion title="Start with 2×2 for Simplicity">
+Default 2×2 grid with `uijk` keys is easy to learn:
+- `u` = up-left
+- `i` = up-right
+- `j` = down-left
+- `k` = down-right
+
+Once comfortable, experiment with 3×3 or per-depth layers.
+</Accordion>
+
+<Accordion title="Use Backspace for Corrections">
+Mistyped a key? Press `Backspace` to go up one level instead of resetting completely with `Space`.
+</Accordion>
+
+<Accordion title="Enable Sub-Key Preview While Learning">
+```toml
+[recursive_grid.ui]
+sub_key_preview = true
+```
+Helps visualize which key goes where until muscle memory develops.
+</Accordion>
+
+<Accordion title="Adjust min_size for Your Needs">
+- **Precision workflows** (design, CAD): `min_size_width = 10`, `min_size_height = 10`
+- **General use**: `min_size_width = 25`, `min_size_height = 25` (default)
+- **Speed over precision**: `min_size_width = 50`, `min_size_height = 50`
+</Accordion>
+
+<Accordion title="Combine with Auto-Exit">
+```toml
+[recursive_grid]
+auto_exit_actions = ["left_click"]
+```
+```bash
+neru recursive_grid --action left_click
+```
+Automatic exit after clicking speeds up repetitive workflows.
+</Accordion>
+
+<Accordion title="Use Per-Depth Layers for Optimization">
+Start with a wide grid (4×2 or 3×3) for coarse selection, then narrow to 2×2 for fine control. This reduces total keypresses for common targets.
+</Accordion>
+
+## Comparison: Recursive Grid vs Grid Mode
+
+| Feature | Recursive Grid | Grid Mode |
+|---------|----------------|------------|
+| **Precision** | ✅ Pixel-perfect | ⚠️ Cell + 3×3 subgrid |
+| **Keypresses** | ⚠️ 4-6 for full screen | ✅ 2-4 (cell + subgrid) |
+| **Muscle memory** | ✅ Consistent patterns | ⚠️ Need to remember coordinates |
+| **Large screens** | ✅ Scales well | ⚠️ Too many cells |
+| **Learning curve** | ✅ Simple (u/i/j/k) | ⚠️ Need to learn coordinate system |
+
+<Tip>
+Use **recursive grid** for precision and large screens. Use **grid mode** for faster navigation when you know the approximate coordinate.
+</Tip>
+
+## Advanced: Key Mappings for Different Layouts
+
+### Vim-Style (2×2)
+
+```toml
+[recursive_grid]
+grid_cols = 2
+grid_rows = 2
+keys = "hjkl"  # h=left, j=down, k=up, l=right
+```
+
+### WASD-Style (2×2)
+
+```toml
+[recursive_grid]
+grid_cols = 2
+grid_rows = 2
+keys = "wasd"  # w=up-left, a=down-left, s=down-right, d=up-right
+```
+
+### Numpad-Style (3×3)
+
+```toml
+[recursive_grid]
+grid_cols = 3
+grid_rows = 3
+keys = "789456123"  # Mirrors numpad layout
+```
+
+### Home Row (3×3)
+
+```toml
+[recursive_grid]
+grid_cols = 3
+grid_rows = 3
+keys = "asdfghjkl"  # Home row keys
+```
+
+## Troubleshooting
+
+### Grid Not Appearing
+
+```bash
+# Check daemon status
+neru status
+
+# Check permissions
+neru doctor
+
+# Try CLI directly
+neru recursive_grid
+```
+
+### Can't Divide Further
+
+If cells stop dividing:
+
+```toml
+[recursive_grid]
+min_size_width = 10   # Lower from 25
+min_size_height = 10  # Lower from 25
+max_depth = 15        # Increase from 10
+```
+
+### Keys Not Matching Layout
+
+Ensure `keys` has exactly `grid_cols × grid_rows` characters:
+
+```toml
+[recursive_grid]
+grid_cols = 3
+grid_rows = 3
+keys = "qweasdzxc"  # Must be 9 chars (3×3)
+```
+
+### Too Many Keypresses
+
+Increase minimum cell size:
+
+```toml
+[recursive_grid]
+min_size_width = 50   # Larger cells = fewer divisions
+min_size_height = 50
+```
+
+Or use per-depth layers to start with a coarser grid.
+
+## Next Steps
+
+- [Grid Mode](/guides/grid-mode) - Coordinate-based navigation
+- [Hints Mode](/guides/hints-mode) - Element-based navigation
+- [Mouse Actions](/guides/mouse-actions) - Clicking and cursor control
+- [Configuration Reference](/concepts/configuration-overview) - Complete config options

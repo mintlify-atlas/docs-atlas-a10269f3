@@ -1,0 +1,704 @@
+---
+title: Status Commands
+description: Check daemon status, health, and version information
+---
+
+Status commands provide information about the running daemon, system health, and Neru version.
+
+## Overview
+
+Status-related commands:
+
+```bash
+neru status              # Daemon status and mode
+neru doctor              # Health check
+neru --version           # Version information
+neru toggle-screen-share # Toggle overlay in screen sharing
+```
+
+---
+
+## status
+
+Display the current status of the Neru daemon.
+
+### Syntax
+
+```bash
+neru status [flags]
+```
+
+### Description
+
+Shows the daemon's running state and current active mode.
+
+### Flags
+
+<ParamField path="--timeout" type="integer" default="5">
+  IPC timeout in seconds
+</ParamField>
+
+### Usage Examples
+
+```bash
+# Check daemon status
+neru status
+```
+
+### Output Format
+
+```
+Status: running
+Mode: idle
+```
+
+### Status Values
+
+<ResponseField name="Status" type="string">
+  Current daemon state
+  
+  **Possible Values:**
+  - `running` - Daemon is active and responding
+  - `disabled` - Daemon is paused (via `neru stop`)
+  
+  **Example:**
+  ```
+  Status: running
+  ```
+</ResponseField>
+
+<ResponseField name="Mode" type="string">
+  Current active navigation mode
+  
+  **Possible Values:**
+  - `idle` - No active mode
+  - `hints` - Hints mode active
+  - `grid` - Grid mode active
+  - `recursive_grid` - Recursive-grid mode active
+  - `scroll` - Scroll mode active
+  
+  **Example:**
+  ```
+  Mode: hints
+  ```
+</ResponseField>
+
+### Use Cases
+
+- Verify daemon is running
+- Check current mode in scripts
+- Troubleshoot CLI command issues
+- Monitor daemon state
+
+### Scripting Examples
+
+<CodeGroup>
+
+```bash Check if Running
+#!/bin/bash
+# Check if Neru is running
+
+if neru status &>/dev/null; then
+    echo "Neru is running"
+else
+    echo "Neru is not running"
+    exit 1
+fi
+```
+
+```bash Extract Status Value
+#!/bin/bash
+# Get current status value
+
+STATUS=$(neru status | grep "Status:" | awk '{print $2}')
+echo "Current status: $STATUS"
+
+if [ "$STATUS" = "running" ]; then
+    echo "Daemon is active"
+fi
+```
+
+```bash Extract Mode Value
+#!/bin/bash
+# Get current mode
+
+MODE=$(neru status | grep "Mode:" | awk '{print $2}')
+echo "Current mode: $MODE"
+
+if [ "$MODE" != "idle" ]; then
+    echo "Navigation mode is active"
+fi
+```
+
+```bash Toggle Status
+#!/bin/bash
+# Toggle between running and disabled
+
+STATUS=$(neru status | grep "Status:" | awk '{print $2}')
+
+if [ "$STATUS" = "running" ]; then
+    neru stop
+    echo "Neru paused"
+else
+    neru start
+    echo "Neru resumed"
+fi
+```
+
+</CodeGroup>
+
+### Prerequisites
+
+- Daemon must be running
+
+### Exit Codes
+
+- **0:** Status retrieved successfully
+- **1:** Daemon not running or error occurred
+
+### Related Commands
+
+- [daemon start](/api/commands/daemon#start) - Resume daemon
+- [daemon stop](/api/commands/daemon#stop) - Pause daemon
+- [doctor](#doctor) - Health check
+
+---
+
+## doctor
+
+Perform a health check on Neru components.
+
+### Syntax
+
+```bash
+neru doctor [flags]
+```
+
+### Description
+
+Checks the health of various Neru components and reports any issues.
+
+### Flags
+
+<ParamField path="--timeout" type="integer" default="5">
+  IPC timeout in seconds
+</ParamField>
+
+### Usage Examples
+
+```bash
+# Run health check
+neru doctor
+```
+
+### Output Format
+
+The output shows health status for each component:
+
+```
+Neru Health Check
+=================
+
+✓ Daemon: Running
+✓ IPC: Connected
+✓ Accessibility: Permissions granted
+✓ Screen Recording: Permissions granted
+✓ Hotkeys: Registered (5 hotkeys)
+✓ Configuration: Valid
+✓ Systray: Active
+
+All systems operational
+```
+
+### Health Checks
+
+<ResponseField name="Daemon" type="check">
+  Verifies daemon is running and responding
+  
+  **Possible Results:**
+  - ✓ Running
+  - ✗ Not running
+  - ✗ Not responding
+</ResponseField>
+
+<ResponseField name="IPC" type="check">
+  Checks IPC socket connection
+  
+  **Possible Results:**
+  - ✓ Connected
+  - ✗ Connection failed
+  - ✗ Socket not found
+</ResponseField>
+
+<ResponseField name="Accessibility" type="check">
+  Verifies macOS Accessibility permissions
+  
+  **Possible Results:**
+  - ✓ Permissions granted
+  - ✗ Permissions denied
+  - ⚠ Permissions not determinable
+</ResponseField>
+
+<ResponseField name="Screen Recording" type="check">
+  Checks macOS Screen Recording permissions
+  
+  **Possible Results:**
+  - ✓ Permissions granted
+  - ✗ Permissions denied
+  - ⚠ Permissions not determinable
+</ResponseField>
+
+<ResponseField name="Hotkeys" type="check">
+  Verifies global hotkey registration
+  
+  **Possible Results:**
+  - ✓ Registered (N hotkeys)
+  - ✗ Registration failed
+  - ⚠ Some hotkeys failed
+</ResponseField>
+
+<ResponseField name="Configuration" type="check">
+  Validates loaded configuration
+  
+  **Possible Results:**
+  - ✓ Valid
+  - ✗ Invalid
+  - ⚠ Using defaults (custom config has errors)
+</ResponseField>
+
+<ResponseField name="Systray" type="check">
+  Checks system tray icon status
+  
+  **Possible Results:**
+  - ✓ Active
+  - ✗ Failed to load
+  - ⚠ Disabled in configuration
+</ResponseField>
+
+### Error Output
+
+When issues are detected:
+
+```
+Neru Health Check
+=================
+
+✓ Daemon: Running
+✓ IPC: Connected
+✗ Accessibility: Permissions denied
+✓ Screen Recording: Permissions granted
+⚠ Hotkeys: 3 of 5 registered (2 conflicts)
+✓ Configuration: Valid
+✓ Systray: Active
+
+Issues detected:
+  - Accessibility permissions required for hints mode
+  - Hotkey conflicts: Cmd+H, Cmd+G already in use
+
+See troubleshooting guide: https://neru.dev/guides/troubleshooting
+```
+
+### Use Cases
+
+- Diagnose permission issues
+- Verify installation
+- Troubleshoot hotkey conflicts
+- Check component health
+- Validate system requirements
+
+### Exit Codes
+
+- **0:** Command executed (issues reported in output)
+- **1:** Cannot connect to daemon or critical error
+
+### Prerequisites
+
+- Can run even if daemon is not running (limited checks)
+- Full checks require running daemon
+
+### Related Commands
+
+- [status](#status) - Basic status check
+- [config dump](/api/commands/config#dump) - View configuration
+
+---
+
+## --version
+
+Display Neru version information.
+
+### Syntax
+
+```bash
+neru --version
+```
+
+### Description
+
+Shows the Neru version number, Git commit hash, and build date.
+
+### Usage Examples
+
+```bash
+# Show version
+neru --version
+```
+
+### Output Format
+
+```
+Neru version 0.5.0
+Git commit: a1b2c3d4e5f6
+Build date: 2024-03-13T10:30:00Z
+```
+
+### Version Fields
+
+<ResponseField name="Version" type="string">
+  Semantic version number (MAJOR.MINOR.PATCH)
+  
+  **Example:** `0.5.0`
+</ResponseField>
+
+<ResponseField name="Git commit" type="string">
+  Short Git commit hash from which the build was created
+  
+  **Example:** `a1b2c3d4e5f6`
+  
+  **Note:** Shows `unknown` for development builds
+</ResponseField>
+
+<ResponseField name="Build date" type="string">
+  ISO 8601 timestamp when the binary was built
+  
+  **Example:** `2024-03-13T10:30:00Z`
+  
+  **Note:** Shows `unknown` for development builds
+</ResponseField>
+
+### Use Cases
+
+- Verify installed version
+- Report version in bug reports
+- Check for updates
+- Confirm successful installation
+
+### Development Builds
+
+Development builds show:
+
+```
+Neru version dev
+Git commit: unknown
+Build date: unknown
+```
+
+### Related Commands
+
+- [doctor](#doctor) - System health check
+- [status](#status) - Daemon status
+
+---
+
+## toggle-screen-share
+
+Toggle overlay visibility during screen sharing.
+
+### Syntax
+
+```bash
+neru toggle-screen-share [flags]
+```
+
+### Description
+
+Toggles whether Neru overlays appear in screen sharing applications (Zoom, Google Meet, OBS, etc.).
+
+### Flags
+
+<ParamField path="--timeout" type="integer" default="5">
+  IPC timeout in seconds
+</ParamField>
+
+### Usage Examples
+
+```bash
+# Toggle screen share visibility
+neru toggle-screen-share
+```
+
+### Output
+
+```
+Screen share mode: Hidden
+```
+
+Or:
+
+```
+Screen share mode: Visible
+```
+
+### Behavior
+
+#### Hidden Mode
+
+- Overlays do **not** appear in shared screens
+- Overlays remain visible to you locally
+- Grid, hints, and recursive-grid overlays are hidden from screen share
+- Status tray icon shows "Screen Share: Hidden"
+
+#### Visible Mode (Default)
+
+- Overlays appear normally in screen sharing
+- Everything shared as usual
+- Status tray icon shows "Screen Share: Visible"
+
+### State Persistence
+
+- State resets to **visible** on Neru restart
+- State is not saved to configuration
+- Must be toggled each time Neru starts
+
+### Platform Support
+
+<Note>
+  This feature uses macOS `NSWindow.sharingType` API, which is deprecated. Effectiveness varies by macOS version and screen sharing application.
+</Note>
+
+#### macOS 14 and Earlier
+
+- Works reliably with most applications
+- Zoom, Google Meet, Discord, OBS supported
+
+#### macOS 15.4+
+
+- Limited effectiveness with modern screen capture (ScreenCaptureKit)
+- Some applications may still show overlays
+- Test with your specific conferencing software
+
+### System Tray Menu
+
+Also accessible via system tray:
+
+1. Click Neru system tray icon
+2. Look for "Screen Share: Visible/Hidden"
+3. Click to toggle
+
+### Use Cases
+
+- Present without showing navigation overlays
+- Record screencasts without hints/grid
+- Screen share without revealing workflows
+- Privacy during screen sharing
+
+### Prerequisites
+
+- Daemon must be running
+- macOS only (not applicable to other platforms)
+
+### Limitations
+
+- Does not affect cursor itself
+- Does not hide application window contents
+- Only hides Neru overlays (hints, grid, etc.)
+- Effectiveness varies by screen sharing software
+
+### Testing
+
+Before important presentations:
+
+1. Start screen sharing application
+2. Run `neru toggle-screen-share` to hide
+3. Activate a navigation mode (hints, grid)
+4. Verify overlays are hidden in screen share preview
+5. Verify overlays are still visible locally
+
+### Related Commands
+
+- [status](#status) - Check daemon status
+- [daemon stop](/api/commands/daemon#stop) - Disable all functionality
+
+---
+
+## Error Handling
+
+### Common Errors
+
+<ResponseField name="ERR_IPC_SERVER_NOT_RUNNING" type="error">
+  **Message:** `neru is not running. Start it first with 'neru' or 'neru launch'`
+  
+  **Commands Affected:** `status`, `toggle-screen-share`
+  
+  **Resolution:** Run `neru launch` first
+</ResponseField>
+
+<ResponseField name="Connection Timeout" type="error">
+  **Symptoms:** Command hangs or times out
+  
+  **Resolution:**
+  ```bash
+  # Increase timeout
+  neru status --timeout 10
+  
+  # Or restart daemon
+  pkill neru
+  neru launch
+  ```
+</ResponseField>
+
+<ResponseField name="Permission Denied" type="warning">
+  **Shown in:** `doctor` command output
+  
+  **Resolution:**
+  1. Open System Settings > Privacy & Security
+  2. Grant Accessibility and Screen Recording permissions
+  3. Restart Neru
+</ResponseField>
+
+---
+
+## Scripting Examples
+
+### Status Monitor
+
+```bash
+#!/bin/bash
+# Monitor daemon status continuously
+
+while true; do
+    clear
+    echo "Neru Status Monitor"
+    echo "==================="
+    echo ""
+    neru status
+    echo ""
+    echo "Press Ctrl+C to exit"
+    sleep 2
+done
+```
+
+### Health Check Alert
+
+```bash
+#!/bin/bash
+# Run health check and alert on issues
+
+OUTPUT=$(neru doctor 2>&1)
+
+if echo "$OUTPUT" | grep -q "Issues detected"; then
+    osascript -e 'display notification "Neru has health issues" with title "Neru Doctor"'
+    echo "$OUTPUT"
+    exit 1
+fi
+
+echo "All systems healthy"
+```
+
+### Version Check
+
+```bash
+#!/bin/bash
+# Check if Neru version meets minimum requirement
+
+REQUIRED="0.5.0"
+CURRENT=$(neru --version | head -n1 | awk '{print $3}')
+
+if [ "$(printf '%s\n' "$REQUIRED" "$CURRENT" | sort -V | head -n1)" != "$REQUIRED" ]; then
+    echo "Neru version $REQUIRED or higher required (found: $CURRENT)"
+    exit 1
+fi
+
+echo "Neru version OK: $CURRENT"
+```
+
+### Auto-hide for Screen Sharing
+
+```bash
+#!/bin/bash
+# Automatically hide overlays when Zoom is running
+
+while true; do
+    if pgrep -x "zoom.us" > /dev/null; then
+        # Zoom is running
+        CURRENT=$(neru status 2>/dev/null | grep -c "Screen Share: Visible")
+        if [ "$CURRENT" -gt 0 ]; then
+            neru toggle-screen-share
+            echo "Overlays hidden for Zoom"
+        fi
+    fi
+    sleep 5
+done
+```
+
+---
+
+## Technical Details
+
+### Status Response Format
+
+```json
+{
+  "success": true,
+  "message": "OK",
+  "code": "OK",
+  "data": {
+    "status": "running",
+    "mode": "idle"
+  }
+}
+```
+
+### Health Check Response
+
+```json
+{
+  "success": true,
+  "message": "OK",
+  "code": "OK",
+  "data": {
+    "daemon": {
+      "status": "running",
+      "healthy": true
+    },
+    "ipc": {
+      "connected": true,
+      "socket_path": "/var/folders/.../T/neru.sock"
+    },
+    "permissions": {
+      "accessibility": true,
+      "screen_recording": true
+    },
+    "hotkeys": {
+      "registered": 5,
+      "total": 5,
+      "conflicts": []
+    },
+    "config": {
+      "valid": true,
+      "path": "~/.config/neru/config.toml"
+    },
+    "systray": {
+      "active": true
+    }
+  }
+}
+```
+
+### Version Information
+
+Version info is compiled into the binary at build time using ldflags:
+
+```bash
+go build -ldflags "-X github.com/y3owk1n/neru/internal/cli.Version=0.5.0 \
+  -X github.com/y3owk1n/neru/internal/cli.GitCommit=$(git rev-parse --short HEAD) \
+  -X github.com/y3owk1n/neru/internal/cli.BuildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+```
+
+---
+
+## See Also
+
+- [Daemon Commands](/api/commands/daemon) - Start, stop, and control daemon
+- [Configuration Commands](/api/commands/config) - Manage configuration
+- [Troubleshooting Guide](/guides/troubleshooting) - Resolve common issues

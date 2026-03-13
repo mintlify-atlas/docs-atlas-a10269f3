@@ -1,0 +1,537 @@
+---
+title: Mouse Actions
+description: Keyboard-driven mouse clicking and cursor movement
+---
+
+Neru provides comprehensive keyboard-driven mouse actions, enabling clicking, dragging, and precise cursor control without touching the mouse.
+
+## Overview
+
+Mouse actions fall into two categories:
+
+1. **Direct actions** - Immediate actions at current cursor position (via `neru action` command)
+2. **Mode actions** - Actions performed while in a navigation mode (hints, grid, recursive grid, scroll)
+
+## Direct Action Commands
+
+Perform immediate actions at the current cursor position using `neru action` subcommands.
+
+### Click Actions
+
+```bash
+# Left click at current cursor position
+neru action left_click
+
+# Right click at current cursor position
+neru action right_click
+
+# Middle click at current cursor position
+neru action middle_click
+```
+
+### Press and Hold Actions
+
+```bash
+# Press and hold mouse button
+neru action mouse_down
+
+# Release mouse button
+neru action mouse_up
+```
+
+<Tip>
+Use `mouse_down` and `mouse_up` for drag operations: position cursor, press `mouse_down`, move cursor, press `mouse_up`.
+</Tip>
+
+### Mouse Movement Commands
+
+<CodeGroup>
+```bash Absolute Position
+# Move to absolute screen coordinates (500, 300)
+neru action move_mouse --x 500 --y 300
+```
+
+```bash Center of Screen
+# Move to center of active screen
+neru action move_mouse --center
+
+# Move to center with offset
+neru action move_mouse --center --x 50 --y -30
+
+# Move to center with single-axis offset
+neru action move_mouse --center --x 100  # y defaults to 0
+```
+
+```bash Relative Movement
+# Move 10 pixels right, 5 pixels up from current position
+neru action move_mouse_relative --dx 10 --dy -5
+```
+</CodeGroup>
+
+### Movement Options
+
+| Command | Flags | Description |
+|---------|-------|-------------|
+| `move_mouse` | `--x <px> --y <px>` | Move to absolute screen coordinates |
+| `move_mouse` | `--center` | Move to center of active screen |
+| `move_mouse` | `--center --x <px> --y <px>` | Center with offset (each optional) |
+| `move_mouse_relative` | `--dx <px> --dy <px>` | Move by delta from current position |
+
+<Note>
+All coordinates are in pixels. Screen coordinates are absolute (top-left is 0,0).
+</Note>
+
+## Mode Action Keys
+
+Perform actions while in hints, grid, recursive grid, or scroll modes using configured keybindings.
+
+### Default Mode Action Keys
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `Shift+L` | Left click | Click at cursor |
+| `Shift+R` | Right click | Open context menu |
+| `Shift+M` | Middle click | Middle button click |
+| `Shift+I` | Mouse down | Press and hold |
+| `Shift+U` | Mouse up | Release button |
+| `Up` | Move up | Move cursor up 10px |
+| `Down` | Move down | Move cursor down 10px |
+| `Left` | Move left | Move cursor left 10px |
+| `Right` | Move right | Move cursor right 10px |
+
+### Configuring Mode Action Keys
+
+```toml
+[action.key_bindings]
+left_click = "Shift+L"
+right_click = "Shift+R"
+middle_click = "Shift+M"
+mouse_down = "Shift+I"
+mouse_up = "Shift+U"
+move_mouse_up = "Up"
+move_mouse_down = "Down"
+move_mouse_left = "Left"
+move_mouse_right = "Right"
+```
+
+### Movement Step Size
+
+Control how far arrow keys move the cursor:
+
+```toml
+[action]
+move_mouse_step = 10  # Pixels per arrow key press (default)
+# move_mouse_step = 5  # Finer control
+# move_mouse_step = 20 # Faster movement
+```
+
+<Tip>
+`move_mouse_step` applies to arrow key movements in all navigation modes.
+</Tip>
+
+## Combining Actions with Navigation Modes
+
+### Hints Mode + Actions
+
+```bash
+# Activate hints, select element, right-click
+neru hints --action right_click
+
+# Workflow:
+# 1. Type hint label (e.g., "as")
+# 2. Cursor moves to element
+# 3. Right-click executes automatically
+```
+
+Or use action keys while in hints mode:
+
+```bash
+# Activate hints
+neru hints
+
+# Type partial label: "a"
+# Adjust position: Arrow keys
+# Click: Shift+L
+```
+
+### Grid Mode + Actions
+
+```bash
+# Activate grid, select cell, left-click
+neru grid --action left_click
+
+# Workflow:
+# 1. Type grid label (e.g., "bd")
+# 2. Select subgrid cell (e.g., "bb")
+# 3. Left-click executes automatically
+```
+
+Or use action keys while in grid mode:
+
+```bash
+# Activate grid
+neru grid
+
+# Type grid label: "bd"
+# Adjust position: Arrow keys
+# Click: Shift+R (right-click)
+```
+
+### Recursive Grid + Actions
+
+```bash
+# Activate recursive grid, navigate, left-click
+neru recursive_grid --action left_click
+
+# Workflow:
+# 1. Press cell keys (e.g., "u" -> "k" -> "i")
+# 2. Cursor moves to precise location
+# 3. Left-click executes automatically
+```
+
+Or use action keys while in recursive grid mode:
+
+```bash
+# Activate recursive grid
+neru recursive_grid
+
+# Navigate: "u" -> "k"
+# Adjust: Arrow keys
+# Click: Shift+L
+```
+
+### Scroll Mode + Actions
+
+Scroll mode doesn't support the `--action` flag, but you can use action keys:
+
+```bash
+# Activate scroll mode
+neru scroll
+
+# Scroll to position: j j j j
+# Click at position: Shift+L
+```
+
+## Auto-Exit Actions
+
+Automatically exit navigation modes after performing specific actions:
+
+```toml
+[hints]
+auto_exit_actions = ["left_click", "middle_click"]
+
+[grid]
+auto_exit_actions = ["left_click"]
+
+[recursive_grid]
+auto_exit_actions = ["left_click", "right_click"]
+```
+
+<Warning>
+Do **not** include `move_mouse_relative` in `auto_exit_actions` - it will exit on every arrow key press, preventing fine cursor adjustments.
+</Warning>
+
+## Available Action Names
+
+For use in `auto_exit_actions` configuration:
+
+- `left_click` - Left mouse button click
+- `right_click` - Right mouse button click
+- `middle_click` - Middle mouse button click
+- `mouse_down` - Press and hold left button
+- `mouse_up` - Release left button
+- `move_mouse_relative` - Arrow key cursor nudge (avoid in auto_exit_actions)
+
+## Smooth Cursor Movement
+
+Animate cursor movement for visual tracking:
+
+```toml
+[smooth_cursor]
+move_mouse_enabled = false  # default (instant)
+steps = 10                  # Number of intermediate positions (>= 1)
+delay = 1                   # Milliseconds between steps (>= 0)
+```
+
+<Accordion title="Smooth vs Instant Movement">
+**Instant (default):**
+- `move_mouse_enabled = false`
+- Cursor teleports instantly
+- Fastest, no animation
+
+**Smooth:**
+- `move_mouse_enabled = true`
+- Cursor animates between positions
+- Easier to track visually
+- Adds slight delay (steps × delay milliseconds)
+</Accordion>
+
+<Accordion title="Tuning Smooth Movement">
+```toml
+# Smooth but slower
+[smooth_cursor]
+move_mouse_enabled = true
+steps = 10
+delay = 10  # 100ms total
+
+# Faster, less smooth
+[smooth_cursor]
+move_mouse_enabled = true
+steps = 5
+delay = 2   # 10ms total
+```
+</Accordion>
+
+## Real-World Examples
+
+### Example 1: Right-Click Menu Access
+
+```bash
+# Activate hints with right-click action
+neru hints --action right_click
+
+# Type hint label (e.g., "as")
+# Context menu opens automatically
+```
+
+### Example 2: Precise Click Positioning
+
+```bash
+# Activate grid
+neru grid
+
+# Select cell: "bd"
+# Select subgrid: "bb"
+# Adjust with arrows: Up Up Right
+# Click: Shift+L
+```
+
+### Example 3: Drag and Drop
+
+```bash
+# Navigate to start position
+neru hints
+# Type hint label: "as"
+
+# Press and hold
+neru action mouse_down
+
+# Navigate to end position
+neru hints
+# Type hint label: "df"
+
+# Release
+neru action mouse_up
+```
+
+### Example 4: Center Screen Click
+
+```bash
+# Move to screen center
+neru action move_mouse --center
+
+# Click
+neru action left_click
+```
+
+### Example 5: Offset from Center
+
+```bash
+# Move to center with offset
+neru action move_mouse --center --x 200 --y -100
+
+# Right-click
+neru action right_click
+```
+
+### Example 6: Relative Nudging
+
+```bash
+# Move cursor 50px right, 20px down
+neru action move_mouse_relative --dx 50 --dy 20
+
+# Click
+neru action left_click
+```
+
+## Tips and Best Practices
+
+<Accordion title="Use --action Flag for Speed">
+Combine navigation with automatic actions:
+```bash
+neru hints --action left_click
+neru grid --action right_click
+neru recursive_grid --action left_click
+```
+Eliminates need to manually trigger action.
+</Accordion>
+
+<Accordion title="Use Arrow Keys for Fine-Tuning">
+After navigating to approximate position, use arrow keys to adjust:
+```toml
+[action]
+move_mouse_step = 10  # Or smaller for finer control
+```
+</Accordion>
+
+<Accordion title="Configure Auto-Exit for Workflow">
+```toml
+[hints]
+auto_exit_actions = ["left_click", "middle_click"]
+```
+Automatic exit after clicking speeds up repetitive tasks.
+</Accordion>
+
+<Accordion title="Smooth Cursor for Large Jumps">
+```toml
+[smooth_cursor]
+move_mouse_enabled = true
+steps = 10
+delay = 5
+```
+Helps track cursor movement on large displays or when jumping far.
+</Accordion>
+
+<Accordion title="Use mouse_down/mouse_up for Dragging">
+```bash
+# Position at start
+neru grid
+# Type: "bd" -> "bb"
+
+# Hold
+neru action mouse_down
+
+# Position at end
+neru grid
+# Type: "fh" -> "cc"
+
+# Release
+neru action mouse_up
+```
+</Accordion>
+
+<Accordion title="Bind Actions to External Hotkeys">
+Use skhd or similar for quick access:
+```bash
+# ~/.config/skhd/skhdrc
+ctrl + shift - l : neru action left_click
+ctrl + shift - r : neru action right_click
+```
+</Accordion>
+
+## Advanced: Scripting with Actions
+
+### Automated Clicking
+
+```bash
+#!/bin/bash
+# Click at specific coordinates
+neru action move_mouse --x 500 --y 300
+neru action left_click
+
+# Wait
+sleep 1
+
+# Click elsewhere
+neru action move_mouse --x 800 --y 400
+neru action left_click
+```
+
+### Drag and Drop Script
+
+```bash
+#!/bin/bash
+# Move to start
+neru action move_mouse --x 100 --y 100
+
+# Press and hold
+neru action mouse_down
+
+# Wait
+sleep 0.5
+
+# Move to end
+neru action move_mouse --x 500 --y 500
+
+# Release
+neru action mouse_up
+```
+
+### Center Click Script
+
+```bash
+#!/bin/bash
+# Move to center
+neru action move_mouse --center
+
+# Click
+neru action left_click
+```
+
+## Troubleshooting
+
+### Action Not Executing
+
+```bash
+# Check daemon status
+neru status
+
+# Check permissions
+neru doctor
+
+# Try direct command
+neru action left_click
+```
+
+### Wrong Click Location
+
+Ensure cursor is positioned correctly:
+
+```bash
+# Move to position first
+neru action move_mouse --x 500 --y 300
+
+# Then click
+neru action left_click
+```
+
+### Arrow Keys Not Working in Mode
+
+Check action key bindings:
+
+```toml
+[action.key_bindings]
+move_mouse_up = "Up"      # Ensure arrow keys are bound
+move_mouse_down = "Down"
+move_mouse_left = "Left"
+move_mouse_right = "Right"
+```
+
+### Auto-Exit Not Working
+
+Verify action name spelling:
+
+```toml
+[hints]
+auto_exit_actions = ["left_click"]  # Correct
+# auto_exit_actions = ["leftclick"]  # WRONG - no underscore
+```
+
+### Smooth Cursor Lagging
+
+Reduce steps or delay:
+
+```toml
+[smooth_cursor]
+move_mouse_enabled = true
+steps = 5       # Lower from 10
+delay = 1       # Lower from 10
+```
+
+## Next Steps
+
+- [Hints Mode](/guides/hints-mode) - Element-based navigation
+- [Grid Mode](/guides/grid-mode) - Coordinate-based navigation
+- [Recursive Grid](/guides/recursive-grid) - Cell-based navigation
+- [CLI Usage](/guides/cli-usage) - Command-line interface
+- [Configuration Reference](/concepts/configuration-overview) - Complete config options

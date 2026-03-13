@@ -1,0 +1,356 @@
+---
+title: Hints Configuration
+description: Hint mode styling, behavior, and accessibility element detection
+---
+
+## Overview
+
+Hint mode uses macOS Accessibility APIs to identify clickable UI elements and overlay short labels on them. It's ideal for clicking buttons, links, menus, and any application with standard macOS UI elements.
+
+## Configuration Section
+
+```toml
+[hints]
+```
+
+## Core Settings
+
+<ParamField path="enabled" type="boolean" default="true">
+  Enable or disable hints mode globally.
+</ParamField>
+
+<ParamField path="hint_characters" type="string" default='asdfghjkl'>
+  Characters used to generate hint labels. Order matters for ergonomics. Must contain at least 2 unique ASCII characters with no duplicates (case-insensitive).
+  
+  **Examples:**
+  ```toml
+  hint_characters = "asdfghjkl"    # Home row (default)
+  hint_characters = "jkl;asdfg"   # Alternative home row
+  hint_characters = "fjdksla;g"   # Center columns
+  hint_characters = "hjklasdfg"   # Vim-style
+  ```
+</ParamField>
+
+<ParamField path="backspace_key" type="string" default='Backspace'>
+  Key used for input correction (deleting the last typed character). When empty (`""`), defaults to the standard Backspace/Delete key.
+  
+  **Valid formats:** single character, named key (`Backspace`, `Delete`, `Ctrl+H`)
+  
+  Must not conflict with `hint_characters` or action key bindings.
+</ParamField>
+
+### Mode Exit
+
+<ParamField path="mode_exit_keys" type="array[string]" default="[]">
+  Additional keys that exit hints mode (merged with `general.mode_exit_keys`). Must not conflict with `hint_characters`.
+</ParamField>
+
+<ParamField path="auto_exit_actions" type="array[string]" default="[]">
+  Actions that cause hints mode to exit automatically after execution.
+  
+  **Available actions:**
+  - `left_click`
+  - `right_click`
+  - `middle_click`
+  - `mouse_down`
+  - `mouse_up`
+  - `move_mouse_relative` (not recommended - exits on every arrow key nudge)
+  
+  **Example:**
+  ```toml
+  auto_exit_actions = ["left_click", "middle_click"]
+  ```
+</ParamField>
+
+<Warning>
+  Including `move_mouse_relative` in `auto_exit_actions` will cause the mode to exit on every arrow-key nudge, which is usually undesirable.
+</Warning>
+
+## Visual Styling
+
+### UI Section
+
+```toml
+[hints.ui]
+```
+
+<ParamField path="font_size" type="integer" default="10">
+  Label font size in points. Valid range: 6–72.
+</ParamField>
+
+<ParamField path="font_family" type="string" default='"'>
+  Font name for labels. Empty string uses system bold font.
+  
+  **Examples:**
+  ```toml
+  font_family = ""              # System bold (default)
+  font_family = "SF Mono"
+  font_family = "Menlo"
+  font_family = "JetBrains Mono"
+  ```
+</ParamField>
+
+<ParamField path="border_radius" type="integer" default="-1">
+  Border radius in pixels. `-1` = automatic pill shape. Valid range: ≥1 or `-1`.
+</ParamField>
+
+<ParamField path="border_width" type="integer" default="1">
+  Border width in pixels. Valid range: ≥0.
+</ParamField>
+
+<ParamField path="padding_x" type="integer" default="-1">
+  Horizontal padding in pixels. `-1` = automatic based on font size. Valid range: ≥1 or `-1`.
+</ParamField>
+
+<ParamField path="padding_y" type="integer" default="-1">
+  Vertical padding in pixels. `-1` = automatic based on font size. Valid range: ≥1 or `-1`.
+</ParamField>
+
+### Theme-Aware Colors
+
+<Note>
+  All colors are theme-aware. When empty (`""`), Neru uses built-in defaults that adapt to Light/Dark Mode automatically. Set explicit values to override.
+</Note>
+
+<ParamField path="background_color_light" type="string" default='#F200CFCF'>
+  Label background color for Light Mode. Format: `#AARRGGBB` or `#RRGGBB`.
+</ParamField>
+
+<ParamField path="background_color_dark" type="string" default='#F2007A9E'>
+  Label background color for Dark Mode.
+</ParamField>
+
+<ParamField path="text_color_light" type="string" default='#FF003554'>
+  Label text color for Light Mode.
+</ParamField>
+
+<ParamField path="text_color_dark" type="string" default='#FFFFFFFF'>
+  Label text color for Dark Mode.
+</ParamField>
+
+<ParamField path="matched_text_color_light" type="string" default='#FFAAEEFF'>
+  Typed character text color for Light Mode.
+</ParamField>
+
+<ParamField path="matched_text_color_dark" type="string" default='#FF003554'>
+  Typed character text color for Dark Mode.
+</ParamField>
+
+<ParamField path="border_color_light" type="string" default='#FF008A8A'>
+  Border color for Light Mode.
+</ParamField>
+
+<ParamField path="border_color_dark" type="string" default='#FF00B4D8'>
+  Border color for Dark Mode.
+</ParamField>
+
+## System Area Hints
+
+<ParamField path="include_menubar_hints" type="boolean" default="false">
+  Show hints on menubar items.
+</ParamField>
+
+<ParamField path="additional_menubar_hints_targets" type="array[string]" default="[]">
+  Extra menubar bundle IDs to target. Default includes common system components.
+  
+  **Default targets:**
+  ```toml
+  additional_menubar_hints_targets = [
+      "com.apple.TextInputMenuAgent",
+      "com.apple.controlcenter",
+      "com.apple.systemuiserver",
+  ]
+  ```
+</ParamField>
+
+<ParamField path="include_dock_hints" type="boolean" default="false">
+  Show hints on Dock items.
+</ParamField>
+
+<ParamField path="include_nc_hints" type="boolean" default="false">
+  Show hints in Notification Center.
+</ParamField>
+
+<ParamField path="include_stage_manager_hints" type="boolean" default="false">
+  Show hints in Stage Manager.
+</ParamField>
+
+<ParamField path="detect_mission_control" type="boolean" default="false">
+  Auto-disable active app hints when in Mission Control.
+</ParamField>
+
+<Warning>
+  **macOS 26+ only:** Do NOT enable `detect_mission_control` on macOS < 26.x - causes false positives.
+</Warning>
+
+## Clickable Elements
+
+<ParamField path="clickable_roles" type="array[string]" default="[see below]">
+  AX roles that generate hints. Defines which UI element types are considered clickable.
+  
+  **Default roles:**
+  ```toml
+  clickable_roles = [
+      "AXButton",
+      "AXComboBox",
+      "AXCheckBox",
+      "AXRadioButton",
+      "AXLink",
+      "AXPopUpButton",
+      "AXTextField",
+      "AXSlider",
+      "AXTabButton",
+      "AXSwitch",
+      "AXDisclosureTriangle",
+      "AXTextArea",
+      "AXMenuButton",
+      "AXMenuItem",
+      "AXCell",
+      "AXRow",
+  ]
+  ```
+</ParamField>
+
+<ParamField path="ignore_clickable_check" type="boolean" default="false">
+  Skip clickability heuristic when identifying elements. When `true`, all elements matching `clickable_roles` generate hints regardless of their clickable state.
+</ParamField>
+
+## Performance Tuning
+
+<ParamField path="mouse_action_refresh_delay" type="integer" default="0">
+  Delay in milliseconds before refreshing hints after a mouse action. Useful for slow-loading apps or dynamic browser content. Valid range: 0–10000.
+  
+  - `0` = immediate refresh
+  - `500` = 0.5 second delay
+  - `10000` = maximum 10 seconds
+</ParamField>
+
+<ParamField path="max_depth" type="integer" default="50">
+  Maximum accessibility tree depth to traverse. `0` = unlimited. Prevents stack overflow on complex UIs.
+</ParamField>
+
+<ParamField path="parallel_threshold" type="integer" default="20">
+  Minimum child count to trigger parallel processing. Lower values enable more parallelization for small trees; higher values reduce overhead for tiny subtrees. Valid range: ≥1.
+</ParamField>
+
+## Per-App Configuration
+
+```toml
+[[hints.app_configs]]
+```
+
+<ParamField path="app_configs" type="array[object]" default="[]">
+  Application-specific overrides for hints behavior.
+  
+  **Fields:**
+  - `bundle_id` (string, required): Application bundle ID
+  - `additional_clickable_roles` (array[string]): Extra AX roles for this app
+  - `ignore_clickable_check` (boolean): Override global clickability check
+  - `mouse_action_refresh_delay` (integer): Override global refresh delay
+  
+  **Examples:**
+  ```toml
+  # Chrome: add tab groups
+  [[hints.app_configs]]
+  bundle_id = "com.google.Chrome"
+  additional_clickable_roles = ["AXTabGroup"]
+  
+  # Safari: delay for dynamic content
+  [[hints.app_configs]]
+  bundle_id = "com.apple.Safari"
+  mouse_action_refresh_delay = 1000
+  
+  # Adobe apps: custom roles + skip check
+  [[hints.app_configs]]
+  bundle_id = "com.adobe.illustrator"
+  additional_clickable_roles = ["AXStaticText", "AXImage"]
+  ignore_clickable_check = true
+  ```
+</ParamField>
+
+## Enhanced Browser Support
+
+```toml
+[hints.additional_ax_support]
+```
+
+Enables additional accessibility features for web browsers and Electron apps.
+
+<ParamField path="enable" type="boolean" default="false">
+  Enable enhanced AX support for browsers and Electron apps.
+</ParamField>
+
+<ParamField path="additional_electron_bundles" type="array[string]" default="[]">
+  Extra Electron app bundle IDs. Auto-detected bundles include:
+  - `com.microsoft.VSCode` (VS Code)
+  - `com.exafunction.windsurf` (Windsurf)
+  - `com.tinyspeck.slackmacgap` (Slack)
+  - `com.spotify.client` (Spotify)
+  - `md.obsidian` (Obsidian)
+</ParamField>
+
+<ParamField path="additional_chromium_bundles" type="array[string]" default="[]">
+  Extra Chromium browser bundle IDs. Auto-detected bundles include:
+  - `com.google.Chrome`
+  - `com.brave.Browser`
+  - `net.imput.helium`
+  - `company.thebrowser.Browser` (Arc)
+</ParamField>
+
+<ParamField path="additional_firefox_bundles" type="array[string]" default="[]">
+  Extra Firefox browser bundle IDs. Auto-detected bundles include:
+  - `org.mozilla.firefox`
+  - `app.zen-browser.zen`
+</ParamField>
+
+## Complete Examples
+
+<CodeGroup>
+```toml Basic
+[hints]
+enabled = true
+hint_characters = "asdfghjkl"
+auto_exit_actions = ["left_click"]
+
+[hints.ui]
+font_size = 10
+font_family = "SF Mono"
+```
+
+```toml Advanced
+[hints]
+enabled = true
+hint_characters = "asdfghjkl"
+backspace_key = "Backspace"
+auto_exit_actions = ["left_click", "middle_click"]
+mouse_action_refresh_delay = 500
+max_depth = 50
+parallel_threshold = 20
+
+include_menubar_hints = true
+include_dock_hints = true
+
+[hints.ui]
+font_size = 12
+font_family = "SF Mono"
+border_radius = 8
+padding_x = 6
+padding_y = 4
+border_width = 2
+
+# Chrome-specific settings
+[[hints.app_configs]]
+bundle_id = "com.google.Chrome"
+additional_clickable_roles = ["AXTabGroup"]
+
+# Enhanced browser support
+[hints.additional_ax_support]
+enable = true
+```
+</CodeGroup>
+
+## Related Configuration
+
+- [General Settings](/api/config/general) - Global exit keys and excluded apps
+- [Appearance](/api/config/appearance) - Mode indicators and smooth cursor
+- [Grid Configuration](/api/config/grid) - Alternative navigation mode

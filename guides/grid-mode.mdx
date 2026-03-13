@@ -1,0 +1,398 @@
+---
+title: Grid Mode
+description: Navigate anywhere on screen with coordinate-based grid labels
+---
+
+Grid mode divides the screen into a coordinate-based grid, enabling precise cursor positioning without relying on accessibility APIs.
+
+## How It Works
+
+Neru overlays a grid of labeled cells on the screen. Each cell has a unique label (e.g., "aa", "ab", "ac"). Type the label to move the cursor to that cell, then optionally select a precise point within the cell using a 3×3 subgrid.
+
+## When to Use Grid Mode
+
+- **No accessibility support** - Works universally, even in apps without standard UI elements
+- **Precise positioning** - Need exact cursor coordinates
+- **Fast navigation** - Direct coordinate selection
+- **Games or graphics apps** - Click anywhere on canvas
+
+<Tip>
+Grid mode is ideal when hints mode doesn't work (custom UI, games, design tools) or when you need pixel-perfect cursor placement.
+</Tip>
+
+## Activation
+
+<Steps>
+  <Step title="Via Hotkey">
+    Press `Cmd+Shift+G` (default) to activate grid mode.
+    
+    ```toml
+    [hotkeys]
+    "Cmd+Shift+G" = "grid"
+    ```
+  </Step>
+  
+  <Step title="Via CLI">
+    ```bash
+    neru grid
+    ```
+  </Step>
+  
+  <Step title="With Auto-Action">
+    Auto-click on selection:
+    ```bash
+    neru grid --action left_click
+    ```
+    
+    Or configure the hotkey:
+    ```toml
+    [hotkeys]
+    "Cmd+Shift+G" = "grid --action left_click"
+    ```
+  </Step>
+</Steps>
+
+## Basic Workflow
+
+1. **Activate grid mode** - Press your configured hotkey or run `neru grid`
+2. **Type coordinates** - Grid cells are labeled (e.g., "a" for row, "d" for column = "ad")
+3. **Select cell** - As you type, matching cells are highlighted
+4. **Subgrid selection** - After selecting a cell, a 3×3 subgrid appears for precise positioning
+5. **Execute action** - Cursor moves to selected point and performs action (click by default)
+
+<CodeGroup>
+```bash Main Grid
+# Screen divided into grid with labels:
+#   a  b  c  d  e  f
+# a aa ab ac ad ae af
+# b ba bb bc bd be bf
+# c ca cb cc cd ce cf
+# ...
+
+# Type "bd" to select cell at row b, column d
+```
+
+```bash Subgrid
+# After selecting "bd", 3×3 subgrid appears:
+#   a  b  c
+# a aa ab ac
+# b ba bb bc
+# c ca cb cc
+
+# Type "bb" to select center of subgrid
+```
+</CodeGroup>
+
+## Key Bindings
+
+### Default Keys
+
+| Key | Action |
+|-----|--------|
+| `a-z` | Grid cell labels (configurable) |
+| `Space` | Reset input and start over |
+| `Backspace` | Delete last typed character |
+| `Shift+L` | Left click at cursor |
+| `Shift+R` | Right click at cursor |
+| `Shift+M` | Middle click at cursor |
+| `Arrow keys` | Fine-tune cursor position (10px per press) |
+| `Escape` | Exit grid mode |
+
+### Customizing Grid Characters
+
+```toml
+[grid]
+characters = "abcdefghijklmnpqrstuvwxyz"  # default (26 chars)
+# characters = "asdfghjkl"                # Home row only
+# characters = "1234567890"               # Numbers
+```
+
+<Note>
+Use at least 2 unique ASCII characters. More characters = larger grid with fewer subgrid steps.
+</Note>
+
+### Custom Row/Column Labels
+
+Override labels for rows and columns separately:
+
+```toml
+[grid]
+# Numbers for rows, letters for columns
+row_labels = "123456789"
+col_labels = "abcdefghij"
+
+# Dvorak-style
+row_labels = "',.pyfgcrl/"
+col_labels = "aoeuidhtns"
+```
+
+### Subgrid Keys
+
+Customize keys for the 3×3 subgrid:
+
+```toml
+[grid]
+sublayer_keys = "abcdefghijklmnpqrstuvwxyz"  # defaults to characters
+# sublayer_keys = "123456789"                 # numbers for subgrid
+```
+
+<Warning>
+Subgrid requires at least 9 characters for the 3×3 grid.
+</Warning>
+
+### Reset and Backspace
+
+```toml
+[grid]
+reset_key = " "          # Space bar (default)
+# reset_key = ","        # Comma
+backspace_key = "Backspace"  # default
+```
+
+## Configuration Options
+
+### Auto-Exit After Actions
+
+```toml
+[grid]
+# Exit grid mode after left click
+auto_exit_actions = ["left_click"]
+```
+
+### Grid Behavior
+
+```toml
+[grid]
+live_match_update = true  # Highlight cells as you type (default)
+hide_unmatched = true     # Hide non-matching cells (default)
+prewarm_enabled = true    # Pre-compute grid on startup (~1.5MB RAM)
+enable_gc = false         # Periodic memory cleanup (adds CPU overhead)
+```
+
+### Performance Options
+
+<Accordion title="Prewarm: Faster First Use">
+```toml
+[grid]
+prewarm_enabled = true  # Pre-compute grid geometry on startup
+```
+Uses ~1.5MB RAM but makes first grid activation instant.
+</Accordion>
+
+<Accordion title="Garbage Collection: Lower Memory">
+```toml
+[grid]
+enable_gc = true  # Enable periodic memory cleanup
+```
+Reduces memory usage but adds slight CPU overhead. Only enable if memory is constrained.
+</Accordion>
+
+## Visual Customization
+
+### Font and Size
+
+```toml
+[grid.ui]
+font_size = 10              # 6-72
+font_family = "SF Mono"     # Empty string = system font
+border_width = 1            # >= 0
+```
+
+### Colors (Theme-Aware)
+
+```toml
+[grid.ui]
+# Cell colors
+background_color_light = "#9900B4D8"   # Blue, 60% opacity
+background_color_dark = "#99003554"    # Dark teal
+text_color_light = "#FF003554"         # Dark teal text
+text_color_dark = "#FFB3E8F5"          # Light cyan text
+border_color_light = "#9900B4D8"       # Blue border
+border_color_dark = "#99003554"        # Dark border
+
+# Matched cell colors (highlighted)
+matched_background_color_light = "#B300CFCF"
+matched_background_color_dark = "#B300B4D8"
+matched_text_color_light = "#FFAAEEFF"
+matched_text_color_dark = "#FFFFFFFF"
+matched_border_color_light = "#B300CFCF"
+matched_border_color_dark = "#B300B4D8"
+```
+
+<Note>
+Color format: `#AARRGGBB` (alpha + RGB). Higher alpha = more opaque. See [Color Reference](/api/config/appearance).
+</Note>
+
+## Real-World Examples
+
+### Example 1: Quick Navigation
+
+```bash
+# Activate grid
+neru grid
+
+# Type "bd" -> cursor moves to cell bd and shows subgrid
+# Type "bb" -> cursor moves to center of subgrid
+# Cursor is now at precise location, ready for action
+```
+
+### Example 2: Fast Clicking Workflow
+
+```bash
+# Activate grid with auto-click
+neru grid --action left_click
+
+# Type "bd" -> moves to bd
+# Type "bb" -> clicks center of subgrid
+# Grid exits automatically
+```
+
+### Example 3: Fine-Tuning Position
+
+```bash
+# Activate grid
+neru grid
+
+# Type "bd" -> selects cell
+# Type "bb" -> selects subgrid center
+# Use arrow keys to adjust by 10px
+# Press Shift+L to click
+```
+
+### Example 4: Reset and Retry
+
+```bash
+# Activate grid
+neru grid
+
+# Type "b" -> wrong row
+# Press Space -> clears input, starts over
+# Type "cd" -> correct cell
+```
+
+## Tips and Best Practices
+
+<Accordion title="Use Numbers for Larger Screens">
+On large displays, consider using numbers for one axis:
+```toml
+[grid]
+row_labels = "123456789"
+col_labels = "abcdefghij"
+```
+This reduces cognitive load - rows are numbers, columns are letters.
+</Accordion>
+
+<Accordion title="Enable Live Match Update">
+```toml
+[grid]
+live_match_update = true  # default
+hide_unmatched = true     # default
+```
+Provides real-time visual feedback as you type.
+</Accordion>
+
+<Accordion title="Prewarm for Frequent Use">
+```toml
+[grid]
+prewarm_enabled = true  # default
+```
+If you use grid mode often, prewarming eliminates the ~100ms computation delay on first activation.
+</Accordion>
+
+<Accordion title="Combine with Auto-Exit">
+```toml
+[grid]
+auto_exit_actions = ["left_click"]
+```
+```bash
+neru grid --action left_click
+```
+Faster workflow for repetitive clicking.
+</Accordion>
+
+<Accordion title="Use Space to Reset">
+Mistyped a label? Press Space to clear input and start over without exiting grid mode.
+</Accordion>
+
+## Comparison: Grid vs Hints
+
+| Feature | Grid Mode | Hints Mode |
+|---------|-----------|------------|
+| **Works everywhere** | ✅ Yes | ❌ Requires AX support |
+| **Precise positioning** | ✅ Pixel-perfect | ⚠️ Element-based |
+| **Speed** | ⚠️ 2 steps (cell + subgrid) | ✅ 1 step (type label) |
+| **UI elements** | ❌ No awareness | ✅ Targets buttons/links |
+| **Best for** | Games, graphics apps, precise clicks | Standard apps, forms, menus |
+
+<Tip>
+Use **hints mode** for UI elements (buttons, links) and **grid mode** for precise positioning or apps without accessibility support.
+</Tip>
+
+## Advanced: Custom Grid Sizes
+
+By adjusting `characters`, `row_labels`, and `col_labels`, you can create grids optimized for your workflow:
+
+```toml
+# Large grid (26×26 = 676 cells)
+[grid]
+characters = "abcdefghijklmnpqrstuvwxyz"
+
+# Small grid (9×9 = 81 cells, more subgrid steps)
+[grid]
+characters = "asdfghjkl"
+
+# Rectangular grid (10 rows × 20 cols)
+[grid]
+row_labels = "1234567890"
+col_labels = "abcdefghijklmnopqrst"
+```
+
+## Troubleshooting
+
+### Grid Not Appearing
+
+```bash
+# Check daemon status
+neru status
+
+# Check permissions
+neru doctor
+
+# Try CLI directly
+neru grid
+```
+
+### Grid Misaligned
+
+Extremely rare. If grid coordinates don't match screen positions:
+
+```toml
+[logging]
+log_level = "debug"
+```
+
+Check logs:
+```bash
+tail -f ~/Library/Logs/neru/app.log
+```
+
+### Slow Grid Activation
+
+```toml
+[grid]
+prewarm_enabled = true  # Pre-compute on startup
+```
+
+### High Memory Usage
+
+```toml
+[grid]
+enable_gc = true  # Enable garbage collection
+```
+
+## Next Steps
+
+- [Recursive Grid](/guides/recursive-grid) - More precise, no subgrid steps
+- [Hints Mode](/guides/hints-mode) - Element-based navigation
+- [Mouse Actions](/guides/mouse-actions) - Clicking and cursor control
+- [Configuration Reference](/concepts/configuration-overview) - Complete config options

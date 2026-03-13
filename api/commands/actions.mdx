@@ -1,0 +1,640 @@
+---
+title: Action Commands
+description: Immediate mouse actions and cursor movement
+---
+
+Action commands perform immediate mouse actions at the current cursor position or move the cursor to a specific location. These commands execute instantly without entering a navigation mode.
+
+## Overview
+
+All action commands are subcommands of `neru action`:
+
+```bash
+neru action <subcommand> [flags]
+```
+
+---
+
+## left_click
+
+Perform an immediate left click at the current cursor position.
+
+### Syntax
+
+```bash
+neru action left_click [flags]
+```
+
+### Description
+
+Executes a left mouse button click at the cursor's current location without moving it.
+
+### Flags
+
+<ParamField path="--timeout" type="integer" default="5">
+  IPC timeout in seconds
+</ParamField>
+
+### Usage Examples
+
+```bash
+# Left click at cursor
+neru action left_click
+```
+
+### Output
+
+```
+OK
+```
+
+### Prerequisites
+
+- Daemon must be running
+
+### Use Cases
+
+- Click at current cursor position from scripts
+- Trigger click after moving cursor with other commands
+- Automate clicking workflows
+
+---
+
+## right_click
+
+Perform an immediate right click at the current cursor position.
+
+### Syntax
+
+```bash
+neru action right_click [flags]
+```
+
+### Description
+
+Executes a right mouse button click (context menu) at the cursor's current location.
+
+### Flags
+
+<ParamField path="--timeout" type="integer" default="5">
+  IPC timeout in seconds
+</ParamField>
+
+### Usage Examples
+
+```bash
+# Right click at cursor
+neru action right_click
+```
+
+### Output
+
+```
+OK
+```
+
+### Use Cases
+
+- Open context menu at cursor position
+- Right-click workflows in scripts
+- Testing context menu behavior
+
+---
+
+## middle_click
+
+Perform an immediate middle click at the current cursor position.
+
+### Syntax
+
+```bash
+neru action middle_click [flags]
+```
+
+### Description
+
+Executes a middle mouse button click at the cursor's current location.
+
+### Flags
+
+<ParamField path="--timeout" type="integer" default="5">
+  IPC timeout in seconds
+</ParamField>
+
+### Usage Examples
+
+```bash
+# Middle click at cursor
+neru action middle_click
+```
+
+### Output
+
+```
+OK
+```
+
+### Use Cases
+
+- Open links in new tabs (browser behavior)
+- Close tabs by clicking on them
+- Application-specific middle-click actions
+
+---
+
+## mouse_down
+
+Press and hold the left mouse button at the current cursor position.
+
+### Syntax
+
+```bash
+neru action mouse_down [flags]
+```
+
+### Description
+
+Presses the left mouse button without releasing it. Use with `mouse_up` for drag operations.
+
+### Flags
+
+<ParamField path="--timeout" type="integer" default="5">
+  IPC timeout in seconds
+</ParamField>
+
+### Usage Examples
+
+```bash
+# Press mouse button
+neru action mouse_down
+```
+
+### Output
+
+```
+OK
+```
+
+### Use Cases
+
+- Start drag operations
+- Select text by dragging
+- Custom mouse gesture implementations
+
+### Related Commands
+
+- [mouse_up](#mouse_up) - Release mouse button
+- [move_mouse](#move_mouse) - Move cursor while button is held
+
+---
+
+## mouse_up
+
+Release the left mouse button at the current cursor position.
+
+### Syntax
+
+```bash
+neru action mouse_up [flags]
+```
+
+### Description
+
+Releases the left mouse button if it was previously pressed with `mouse_down`.
+
+### Flags
+
+<ParamField path="--timeout" type="integer" default="5">
+  IPC timeout in seconds
+</ParamField>
+
+### Usage Examples
+
+```bash
+# Release mouse button
+neru action mouse_up
+```
+
+### Output
+
+```
+OK
+```
+
+### Use Cases
+
+- Complete drag operations
+- End text selection
+- Finish custom mouse gestures
+
+### Related Commands
+
+- [mouse_down](#mouse_down) - Press mouse button
+
+---
+
+## move_mouse
+
+Move the mouse cursor to an absolute screen position.
+
+### Syntax
+
+```bash
+neru action move_mouse --x <pixels> --y <pixels> [flags]
+neru action move_mouse --center [--x <offset>] [--y <offset>] [flags]
+```
+
+### Description
+
+Moves the cursor to absolute screen coordinates or to the center of the active screen with optional offsets.
+
+### Flags
+
+<ParamField path="--x" type="integer" default="0">
+  X coordinate in pixels (required without `--center`)
+  
+  When used with `--center`: horizontal offset from center (optional, defaults to 0)
+  
+  **Examples:**
+  ```bash
+  # Absolute position
+  neru action move_mouse --x 500 --y 300
+  
+  # Center with offset
+  neru action move_mouse --center --x 50
+  ```
+</ParamField>
+
+<ParamField path="--y" type="integer" default="0">
+  Y coordinate in pixels (required without `--center`)
+  
+  When used with `--center`: vertical offset from center (optional, defaults to 0)
+  
+  **Examples:**
+  ```bash
+  # Absolute position
+  neru action move_mouse --x 500 --y 300
+  
+  # Center with offset
+  neru action move_mouse --center --y -30
+  ```
+</ParamField>
+
+<ParamField path="--center" type="boolean" default="false">
+  Move to the center of the active screen
+  
+  When specified, `--x` and `--y` become optional offsets from center
+  
+  **Example:**
+  ```bash
+  # Move to exact center
+  neru action move_mouse --center
+  
+  # Move to center with offset
+  neru action move_mouse --center --x 100 --y -50
+  ```
+</ParamField>
+
+<ParamField path="--timeout" type="integer" default="5">
+  IPC timeout in seconds
+</ParamField>
+
+### Usage Examples
+
+<CodeGroup>
+
+```bash Absolute Position
+# Move to specific coordinates
+neru action move_mouse --x 500 --y 300
+```
+
+```bash Screen Center
+# Move to center of active screen
+neru action move_mouse --center
+```
+
+```bash Center with Offset
+# Move to center, then offset by (50, -30)
+neru action move_mouse --center --x 50 --y -30
+```
+
+```bash Single Axis Offset
+# Move to center, offset only horizontally
+neru action move_mouse --center --x 100
+
+# Move to center, offset only vertically
+neru action move_mouse --center --y -50
+```
+
+</CodeGroup>
+
+### Output
+
+```
+OK
+```
+
+### Behavior
+
+#### Absolute Mode (without `--center`)
+
+- **Required:** Both `--x` and `--y` must be specified
+- Coordinates are relative to the top-left corner of the screen
+- Coordinates are in pixels
+- Origin (0, 0) is at the top-left corner
+
+#### Center Mode (with `--center`)
+
+- Moves to the center of the currently active screen
+- `--x` and `--y` are optional offsets from center
+- Omitted offsets default to 0
+- Positive X moves right, negative X moves left
+- Positive Y moves down, negative Y moves up
+
+### Error Handling
+
+<ResponseField name="Missing Coordinates" type="error">
+  **Message:** `both --x and --y are required when --center is not used`
+  
+  **Resolution:** Provide both `--x` and `--y` flags, or use `--center`
+  
+  **Example:**
+  ```bash
+  # ❌ Invalid
+  neru action move_mouse --x 500
+  
+  # ✅ Valid
+  neru action move_mouse --x 500 --y 300
+  ```
+</ResponseField>
+
+### Use Cases
+
+- Move cursor to specific UI coordinates
+- Center cursor on active screen
+- Position cursor before clicking
+- Implement custom cursor movement patterns
+
+### Related Commands
+
+- [move_mouse_relative](#move_mouse_relative) - Move by delta from current position
+- [left_click](#left_click) - Click after moving
+
+---
+
+## move_mouse_relative
+
+Move the mouse cursor by a relative delta from its current position.
+
+### Syntax
+
+```bash
+neru action move_mouse_relative --dx <pixels> --dy <pixels> [flags]
+```
+
+### Description
+
+Moves the cursor by the specified pixel offset from its current position.
+
+### Flags
+
+<ParamField path="--dx" type="integer" required>
+  Horizontal movement in pixels
+  
+  - Positive values move right
+  - Negative values move left
+  
+  **Example:**
+  ```bash
+  # Move 10 pixels right
+  neru action move_mouse_relative --dx 10 --dy 0
+  ```
+</ParamField>
+
+<ParamField path="--dy" type="integer" required>
+  Vertical movement in pixels
+  
+  - Positive values move down
+  - Negative values move up
+  
+  **Example:**
+  ```bash
+  # Move 5 pixels up
+  neru action move_mouse_relative --dx 0 --dy -5
+  ```
+</ParamField>
+
+<ParamField path="--timeout" type="integer" default="5">
+  IPC timeout in seconds
+</ParamField>
+
+### Usage Examples
+
+<CodeGroup>
+
+```bash Move Right
+# Move 10 pixels to the right
+neru action move_mouse_relative --dx 10 --dy 0
+```
+
+```bash Move Up
+# Move 5 pixels up
+neru action move_mouse_relative --dx 0 --dy -5
+```
+
+```bash Diagonal Movement
+# Move 10 pixels right and 5 pixels down
+neru action move_mouse_relative --dx 10 --dy 5
+```
+
+```bash Small Adjustments
+# Fine-tune cursor position
+neru action move_mouse_relative --dx 1 --dy -1
+```
+
+</CodeGroup>
+
+### Output
+
+```
+OK
+```
+
+### Behavior
+
+- Movement is relative to current cursor position
+- Positive `--dx` moves right, negative moves left
+- Positive `--dy` moves down, negative moves up
+- Both `--dx` and `--dy` are required
+- Movement is immediate (no animation)
+
+### Error Handling
+
+<ResponseField name="Missing Delta" type="error">
+  **Message:** Flag validation error
+  
+  **Resolution:** Both `--dx` and `--dy` are required
+  
+  **Example:**
+  ```bash
+  # ❌ Invalid
+  neru action move_mouse_relative --dx 10
+  
+  # ✅ Valid
+  neru action move_mouse_relative --dx 10 --dy 0
+  ```
+</ResponseField>
+
+### Use Cases
+
+- Fine cursor adjustments
+- Implement arrow key-style movement
+- Cursor nudging in scripts
+- Relative positioning without knowing absolute coordinates
+
+### Related Commands
+
+- [move_mouse](#move_mouse) - Move to absolute position
+
+---
+
+## Scripting Examples
+
+### Drag and Drop
+
+```bash
+#!/bin/bash
+# Drag from one position to another
+
+# Move to start position
+neru action move_mouse --x 100 --y 100
+
+# Press mouse button
+neru action mouse_down
+
+# Move to end position
+neru action move_mouse --x 500 --y 300
+
+# Release mouse button
+neru action mouse_up
+```
+
+### Text Selection
+
+```bash
+#!/bin/bash
+# Select text by dragging
+
+# Position at text start
+neru hints
+# (user selects start position)
+
+# Press mouse button
+neru action mouse_down
+
+# Move to text end
+neru action move_mouse_relative --dx 200 --dy 0
+
+# Release to complete selection
+neru action mouse_up
+```
+
+### Click in Center
+
+```bash
+#!/bin/bash
+# Click in the center of the screen
+
+neru action move_mouse --center
+neru action left_click
+```
+
+### Cursor Adjustment
+
+```bash
+#!/bin/bash
+# Fine-tune cursor position with arrow keys
+# (example integration with key binding tool)
+
+case "$1" in
+  up)    neru action move_mouse_relative --dx 0 --dy -5 ;;
+  down)  neru action move_mouse_relative --dx 0 --dy 5 ;;
+  left)  neru action move_mouse_relative --dx -5 --dy 0 ;;
+  right) neru action move_mouse_relative --dx 5 --dy 0 ;;
+esac
+```
+
+### Navigate and Click
+
+```bash
+#!/bin/bash
+# Move to position and click
+
+neru action move_mouse --x 800 --y 400
+sleep 0.1  # Brief delay
+neru action left_click
+```
+
+---
+
+## Error Handling
+
+### Common Errors
+
+<ResponseField name="ERR_IPC_SERVER_NOT_RUNNING" type="error">
+  **Message:** `neru is not running. Start it first with 'neru' or 'neru launch'`
+  
+  **Resolution:** Run `neru launch` first
+</ResponseField>
+
+<ResponseField name="ERR_INVALID_INPUT" type="error">
+  **Message:** `action subcommand required (e.g., neru action left_click)`
+  
+  **Resolution:** Specify an action subcommand
+  
+  **Example:**
+  ```bash
+  # ❌ Invalid
+  neru action
+  
+  # ✅ Valid
+  neru action left_click
+  ```
+</ResponseField>
+
+---
+
+## Technical Details
+
+### Mouse Event Generation
+
+Actions use macOS Core Graphics APIs to generate mouse events:
+
+- `CGEventCreateMouseEvent` - Create mouse event
+- `CGEventPost` - Post event to system
+- Events are sent to the current event tap location
+
+### Coordinate System
+
+- Origin (0, 0) is at the top-left corner of the primary display
+- X increases to the right
+- Y increases downward
+- Coordinates are in pixels
+- Multi-monitor setups use extended coordinate space
+
+### Event Timing
+
+All action commands execute immediately:
+
+- No animation or easing
+- Instantaneous cursor movement
+- Click events are atomic
+- No delay between mouse down and up in click commands
+
+---
+
+## See Also
+
+- [Navigation Commands](/api/commands/navigation) - Navigate before acting
+- [Mouse Actions Guide](/guides/mouse-actions) - Detailed action guide
+- [Configuration: Key Bindings](/api/config/hotkeys) - Bind actions to hotkeys

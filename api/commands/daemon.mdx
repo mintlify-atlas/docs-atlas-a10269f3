@@ -1,0 +1,397 @@
+---
+title: Daemon Control Commands
+description: Launch, start, stop, and control the Neru daemon
+---
+
+The daemon control commands manage the lifecycle of the Neru daemon process. The daemon must be running for all other commands to work.
+
+## launch
+
+Launch the Neru daemon. This is the primary command to start Neru.
+
+### Syntax
+
+```bash
+neru launch [flags]
+```
+
+### Description
+
+Starts the Neru daemon with the system tray icon and all navigation modes. This command blocks until the daemon is terminated.
+
+### Flags
+
+<ParamField path="--config" type="string" default="">
+  Path to a custom configuration file
+  
+  **Alias:** `-c`
+  
+  **Example:**
+  ```bash
+  neru launch --config ~/my-config.toml
+  neru launch -c ./configs/author-config.toml
+  ```
+</ParamField>
+
+<ParamField path="--timeout" type="integer" default="5">
+  IPC timeout in seconds for communication between CLI and daemon
+  
+  **Example:**
+  ```bash
+  neru launch --timeout 10
+  ```
+</ParamField>
+
+### Usage Examples
+
+<CodeGroup>
+
+```bash Default Launch
+# Launch with default configuration
+neru launch
+```
+
+```bash Custom Config
+# Launch with custom config file
+neru launch --config ~/neru-custom.toml
+```
+
+```bash Short Flag
+# Using the -c shorthand
+neru launch -c ./configs/author-config.toml
+```
+
+</CodeGroup>
+
+### Behavior
+
+- Checks if Neru is already running; exits with message if so
+- Loads configuration from the specified file or default location
+- Shows system alert if configuration validation fails, but continues with defaults
+- Starts IPC server on Unix socket (typically `/var/folders/.../T/neru.sock`)
+- Launches system tray icon (unless disabled in config)
+- Registers global hotkeys based on configuration
+- Blocks until daemon is terminated
+
+### Platform Support
+
+- **macOS:** Full support with native integrations
+- **Linux/Windows:** Limited support (features are stubs)
+
+### Related Commands
+
+- [start](#start) - Resume a paused daemon
+- [stop](#stop) - Pause the daemon
+- [status](/api/commands/status#status) - Check daemon status
+
+---
+
+## start
+
+Resume the Neru daemon if it was previously paused.
+
+### Syntax
+
+```bash
+neru start [flags]
+```
+
+### Description
+
+Enables Neru functionality if it was previously stopped with `neru stop`. This re-enables hotkeys and navigation modes without restarting the daemon.
+
+### Flags
+
+<ParamField path="--timeout" type="integer" default="5">
+  IPC timeout in seconds
+</ParamField>
+
+### Usage Examples
+
+```bash
+# Resume paused daemon
+neru start
+```
+
+### Output
+
+```
+OK
+```
+
+### Prerequisites
+
+- Daemon must be running (`neru launch`)
+
+### Related Commands
+
+- [stop](#stop) - Pause the daemon
+- [status](/api/commands/status#status) - Check daemon status
+
+---
+
+## stop
+
+Pause the Neru daemon without terminating it.
+
+### Syntax
+
+```bash
+neru stop [flags]
+```
+
+### Description
+
+Disables Neru functionality but keeps the daemon running in the background. This disables all hotkeys and navigation modes but preserves the daemon process.
+
+### Flags
+
+<ParamField path="--timeout" type="integer" default="5">
+  IPC timeout in seconds
+</ParamField>
+
+### Usage Examples
+
+```bash
+# Pause daemon (disable functionality)
+neru stop
+```
+
+### Output
+
+```
+OK
+```
+
+### Behavior
+
+- Disables all global hotkeys
+- Prevents navigation modes from being activated
+- Keeps daemon process running
+- System tray icon remains visible
+- Can be resumed with `neru start`
+
+### Prerequisites
+
+- Daemon must be running (`neru launch`)
+
+### Related Commands
+
+- [start](#start) - Resume the daemon
+- [idle](#idle) - Exit current mode only
+
+---
+
+## idle
+
+Exit the current navigation mode and return to idle state.
+
+### Syntax
+
+```bash
+neru idle [flags]
+```
+
+### Description
+
+Exits the current active mode (hints, grid, recursive_grid, or scroll) and returns to idle state. This does not pause the daemon.
+
+### Flags
+
+<ParamField path="--timeout" type="integer" default="5">
+  IPC timeout in seconds
+</ParamField>
+
+### Usage Examples
+
+```bash
+# Exit current mode
+neru idle
+```
+
+### Output
+
+```
+OK
+```
+
+### Behavior
+
+- Exits any active navigation mode
+- Closes all overlays
+- Returns to idle state
+- Hotkeys remain active
+- Daemon continues running
+
+### Use Cases
+
+- Cancel a navigation mode started from CLI
+- Reset to idle state from scripts
+- Exit a mode that got stuck
+
+### Prerequisites
+
+- Daemon must be running (`neru launch`)
+
+### Related Commands
+
+- [stop](#stop) - Pause entire daemon
+- [status](/api/commands/status#status) - Check current mode
+
+---
+
+## Error Handling
+
+### Common Errors
+
+<ResponseField name="ERR_IPC_SERVER_NOT_RUNNING" type="error">
+  **Message:** `neru is not running. Start it first with 'neru' or 'neru launch'`
+  
+  **Resolution:** Run `neru launch` first
+</ResponseField>
+
+<ResponseField name="Configuration Validation Error" type="warning">
+  **Behavior:** Shows system alert and continues with default configuration
+  
+  **Example:**
+  ```
+  ⚠️  Configuration validation failed: invalid hotkey format
+  Config file: /Users/you/.config/neru/config.toml
+  Continuing with default configuration...
+  ```
+</ResponseField>
+
+<ResponseField name="Already Running" type="info">
+  **Message:** `Neru is already running`
+  
+  **Exit Code:** 0
+</ResponseField>
+
+### Timeout Errors
+
+If commands hang or timeout:
+
+```bash
+# Increase timeout
+neru start --timeout 10
+```
+
+### Force Quit
+
+To forcefully terminate a stuck daemon:
+
+```bash
+pkill -9 neru
+```
+
+---
+
+## Technical Details
+
+### IPC Communication
+
+All daemon commands communicate via Unix domain socket:
+
+- **Socket Path:** `/var/folders/.../T/neru.sock` (platform-specific temp directory)
+- **Protocol:** JSON over Unix socket
+- **Default Timeout:** 5 seconds
+
+**Request Format:**
+```json
+{
+  "action": "start",
+  "params": {},
+  "args": []
+}
+```
+
+**Response Format:**
+```json
+{
+  "success": true,
+  "message": "OK",
+  "code": "OK"
+}
+```
+
+### Process Management
+
+- Daemon runs as a single process
+- Uses goroutines for concurrent operations
+- System tray runs on main thread (macOS requirement)
+- Graceful shutdown on SIGTERM/SIGINT
+
+### Platform-Specific Behavior
+
+#### macOS
+
+- Full native integration
+- System tray icon via native APIs
+- Global hotkeys via Carbon APIs
+- Accessibility API integration
+- Screen capture permissions required
+
+#### Linux/Windows
+
+- Most features are stubs
+- Warning shown on launch
+- IPC communication works
+- Overlays and hotkeys not functional
+
+---
+
+## Scripting Examples
+
+### Toggle Script
+
+```bash
+#!/bin/bash
+# Toggle Neru on/off
+
+STATUS=$(neru status 2>/dev/null | grep "Status:" | awk '{print $2}')
+
+if [ "$STATUS" = "running" ]; then
+    neru stop
+    echo "Neru paused"
+else
+    neru start
+    echo "Neru resumed"
+fi
+```
+
+### Launch with Validation
+
+```bash
+#!/bin/bash
+# Launch Neru with custom config and validation
+
+CONFIG="$HOME/.config/neru/config.toml"
+
+if [ ! -f "$CONFIG" ]; then
+    echo "Config file not found: $CONFIG"
+    exit 1
+fi
+
+neru launch --config "$CONFIG"
+```
+
+### Auto-restart on Crash
+
+```bash
+#!/bin/bash
+# Keep Neru running
+
+while true; do
+    neru launch
+    echo "Neru exited, restarting in 5 seconds..."
+    sleep 5
+done
+```
+
+---
+
+## See Also
+
+- [Status Commands](/api/commands/status) - Check daemon status
+- [Services Commands](/api/commands/services) - Auto-start configuration
+- [Configuration Reference](/api/config/general) - Daemon configuration options
